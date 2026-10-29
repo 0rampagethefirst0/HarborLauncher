@@ -1,0 +1,336 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+
+namespace Harbor;
+
+internal sealed class TopBar : Window
+{
+    readonly Shell shell;
+    internal readonly IntPtr MonitorHandle;
+    AppBar? appbar;
+    readonly TextBlock title, clock, stats, network;
+    readonly List<(UIElement Element, Func<bool> Show)> parts = new();
+    IntPtr lastExternal;
+    internal TopBar(Shell shell, IntPtr monitor)
+    {
+        this.shell = shell; MonitorHandle = monitor;
+        Title = "Harbor — top bar"; Height = shell.Config.TopBarHeight; Width = 1000;
+        WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; ShowInTaskbar = false; ShowActivated = false; Topmost = true;
+        Background = Theme.Bg;
+        var grid = new Grid { Margin = new Thickness(10, 0, 10, 0) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var left = new StackPanel { Orientation = Orientation.Horizontal };
+        var brand = new StackPanel { Orientation = Orientation.Horizontal };
+        brand.Children.Add(Theme.Logo(19)); brand.Children.Add(new TextBlock { Text = "Harbor", Margin = new Thickness(8, 0, 0, 0), FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        left.Children.Add(Theme.Button(brand, "Open apps", () => shell.ToggleLauncher(monitor)));
+        left.Children.Add(new Border { Width = 1, Height = 16, Background = Theme.Line, Margin = new Thickness(10, 0, 15, 0) });
+        title = Theme.Label("Desktop", 12, Theme.Muted); title.TextTrimming = TextTrimming.CharacterEllipsis; title.MaxWidth = 320;
+        left.Children.Add(title); grid.Children.Add(left);
+        title.MouseLeftButtonDown += (_, e) => { if (shell.Tweaks.Has("title-actions") && e.ClickCount == 2 && Target() != IntPtr.Zero) { Native.ShowWindow(lastExternal, Native.IsZoomed(lastExternal) ? 9 : 3); Native.Activate(lastExternal); e.Handled = true; } };
+        var titleMenu = new ContextMenu(); title.ContextMenu = titleMenu;
+        title.ContextMenuOpening += (_, e) =>
+        {
+            if (!shell.Tweaks.Has("title-actions") || Target() == IntPtr.Zero) { e.Handled = true; return; }
+            titleMenu.Items.Clear(); var target = lastExternal;
+            titleMenu.Items.Add(Theme.Item("Minimize", () => Native.ShowWindow(target, 6)));
+            titleMenu.Items.Add(Theme.Item(Native.IsZoomed(target) ? "Restore" : "Maximize", () => { Native.ShowWindow(target, Native.IsZoomed(target) ? 9 : 3); Native.Activate(target); }));
+            var topmost = Theme.Item("Always on top", () => { try { var saved = shell.Recovery.AcquireEffect(target, "window-topmost"); if (saved != null) WindowEffects.SetTopmost(saved, (Native.GetWindowLong(target, -20).ToInt64() & 8) == 0); } catch (Exception ex) { shell.Notifications.Add("Window could not be changed", ex.Message); } }); topmost.IsCheckable = true; topmost.IsChecked = (Native.GetWindowLong(target, -20).ToInt64() & 8) != 0; titleMenu.Items.Add(topmost);
+            var entry = shell.Tracker.Windows.FirstOrDefault(w => w.Handle == target); if (entry != null) titleMenu.Items.Add(Theme.Item("Mods for this app", () => shell.OpenAppMods(entry)));
+            titleMenu.Items.Add(new Separator()); titleMenu.Items.Add(Theme.Item("Close window", () => Native.PostMessage(target, 0x10, IntPtr.Zero, IntPtr.Zero)));
+        };
+        PreviewMouseWheel += (_, e) => { if (shell.Tweaks.Module("toolbar-wheel-volume") is not { } mod || (shell.Mods.Value(mod, "modifier", "no") == "yes" && (System.Windows.Input.Keyboard.Modifiers & ModifierKeys.Alt) == 0)) return; Audio.SetVolume(Audio.Read().Volume + Math.Sign(e.Delta) * (float)shell.Mods.Number(mod, "step", 2, 1, 20) / 100); e.Handled = true; };
+        clock = Theme.Label("", 12); clock.FontWeight = FontWeights.SemiBold;
+        var dateButton = Theme.Button(clock, "Calendar", () => shell.OpenCalendar(monitor)); Grid.SetColumn(dateButton, 1); grid.Children.Add(dateButton);
+        parts.Add((dateButton, () => shell.Config.ShowClock)); parts.Add((title, () => shell.Config.ShowActiveTitle));
+        var right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        stats = Theme.Label("", 11, Theme.Muted); stats.Margin = new Thickness(8, 0, 12, 0);
+        Part(Theme.Button(stats, "System usage — open Task Manager", () => Native.Launch("taskmgr.exe")), () => shell.Config.ShowStats);
+        Part(Theme.IconButton("\uE892", "Previous track", () => Native.Media(0xB1)), () => shell.Config.ShowMedia);
+        Part(Theme.IconButton("\uE768", "Play / pause", () => Native.Media(0xB3)), () => shell.Config.ShowMedia);
+        Part(Theme.IconButton("\uE893", "Next track", () => Native.Media(0xB0)), () => shell.Config.ShowMedia);
+        right.Children.Add(new Border { Width = 1, Height = 16, Background = Theme.Line, Margin = new Thickness(6, 0, 6, 0) });
+        network = Theme.Glyph("\uE839", 15);
+        Part(Theme.Button(network, "Quick settings", () => shell.OpenQuick(monitor)), () => shell.Config.ShowNetwork);
+        right.Children.Add(Theme.IconButton("\uE767", "Volume and audio", () => shell.OpenQuick(monitor)));
+        Part(Theme.IconButton("\uE8B7", "Open Harbor Files", () => shell.OpenFiles()), () => shell.Config.ShowFilesButton);
+        Part(Theme.IconButton("\uE7C3", "Mods", shell.OpenMods), () => shell.Config.ShowModsButton);
+        right.Children.Add(Theme.IconButton("\uE7F4", "Notifications", () => shell.OpenNotifications(monitor)));
+        right.Children.Add(Theme.IconButton("\uE713", "Harbor settings", shell.OpenSettings));
+        Grid.SetColumn(right, 2); grid.Children.Add(right);
+        Content = new Border { BorderBrush = Theme.Line, BorderThickness = new Thickness(0, 0, 0, 1), Child = grid };
+        SourceInitialized += (_, _) =>
+        {
+            Native.ToolWindow(this);
+            var m = Native.Monitor(monitor).Monitor;
+            Native.SetWindowPos(new WindowInteropHelper(this).Handle, IntPtr.Zero, m.Left, m.Top, m.Width, (int)(shell.Config.TopBarHeight * Native.Scale(monitor)), 0x14);
+            appbar = new AppBar(this, monitor, 1, shell.Config.TopBarHeight, overlay: shell.Config.ReplaceTaskbar);
+        };
+        Closed += (_, _) => appbar?.Dispose();
+        var menu = new ContextMenu();
+        menu.Items.Add(Theme.Item("Apps", () => shell.ToggleLauncher(monitor)));
+        menu.Items.Add(Theme.Item("Arrange windows", () => shell.OpenArrange(monitor)));
+        menu.Items.Add(Theme.Item("Harbor settings", shell.OpenSettings));
+        menu.Items.Add(Theme.Item("Mods", shell.OpenMods)); menu.Items.Add(Theme.Item("Desktop profiles", shell.OpenProfiles));
+        menu.Items.Add(new Separator()); menu.Items.Add(Theme.Item("Exit Harbor and restore Windows", shell.Exit));
+        ContextMenu = menu;
+        void Part(UIElement element, Func<bool> show) { right.Children.Add(element); parts.Add((element, show)); }
+        IntPtr Target() => Native.IsWindow(lastExternal) && !shell.Games.IsGame(Native.ProcessPath(WindowPid(lastExternal))) ? lastExternal : IntPtr.Zero;
+        static uint WindowPid(IntPtr h) { Native.GetWindowThreadProcessId(h, out uint pid); return pid; }
+    }
+    internal void Tick()
+    {
+        Height = shell.Config.TopBarHeight; appbar?.Configure(shell.Config.TopBarHeight);
+        foreach (var part in parts) part.Element.Visibility = part.Show() ? Visibility.Visible : Visibility.Collapsed;
+        var now = DateTime.Now;
+        string format = shell.Config.Use24HourClock ? "ddd, MMM d     HH:mm" : "ddd, MMM d     h:mm tt";
+        if (shell.Tweaks.Module("clock-seconds") is { } clockMod) format = shell.Mods.Value(clockMod, "format", format);
+        try { clock.Text = now.ToString(format); } catch (FormatException) { clock.Text = now.ToString("HH:mm:ss"); }
+        stats.Text = $"CPU {shell.CpuUsage:0}%   RAM {shell.MemoryUsage}%";
+        stats.Visibility = shell.Config.ShowStats ? Visibility.Visible : Visibility.Collapsed;
+        network.Text = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable() ? "\uE839" : "\uE871";
+        var h = Native.GetForegroundWindow();
+        Native.GetWindowThreadProcessId(h, out uint pid);
+        if (pid != Environment.ProcessId)
+        {
+            string text = Native.Title(h);
+            title.Text = string.IsNullOrWhiteSpace(text) ? "Desktop" : text;
+            if (shell.Tracker.Windows.Any(w => w.Handle == h)) lastExternal = h;
+        }
+        SetFullscreen(shell.HideBars(MonitorHandle));
+    }
+    internal void SetFullscreen(bool hide)
+    {
+        // Hidden bars must release their work area as well as their pixels.
+        appbar?.SetOverlay(shell.Config.ReplaceTaskbar); appbar?.SetSuspended(hide);
+        if (hide && IsVisible) Hide();
+        else if (!hide && !IsVisible) { Show(); appbar?.Position(); }
+    }
+}
+
+internal sealed class Dock : Window
+{
+    readonly Shell shell;
+    internal readonly IntPtr MonitorHandle;
+    readonly StackPanel items;
+    readonly Border frame;
+    readonly ScrollViewer scroller;
+    readonly Button launcher, arrange, showDesktop;
+    readonly Button controls;
+    double opacityTarget = 1;
+    readonly Border pinnedDivider = Divider(), runningDivider = Divider(), endDivider = Divider();
+    readonly Dictionary<string, DockApp> apps = new(StringComparer.OrdinalIgnoreCase);
+    readonly List<string> runningOrder = new();
+    ContextMenu? openMenu;
+    internal bool InputPassThrough { get; private set; }
+    internal bool MenuOpen => openMenu?.IsOpen == true || ContextMenu?.IsOpen == true || apps.Values.Any(a => a.Button.ContextMenu?.IsOpen == true);
+    AppBar? appbar;
+    internal Dock(Shell shell, IntPtr monitor)
+    {
+        this.shell = shell; MonitorHandle = monitor;
+        Title = "Harbor \u2014 dock"; Width = 400; Height = shell.Config.DockHeight;
+        WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; ShowInTaskbar = false; ShowActivated = false; Topmost = true; AllowsTransparency = true; Background = Brushes.Transparent;
+        items = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 4, 8, 4), VerticalAlignment = VerticalAlignment.Center };
+        scroller = new ScrollViewer { Content = items, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        frame = new Border { Background = Theme.Bg, CornerRadius = new CornerRadius(shell.Config.DockRadius), BorderBrush = Theme.Line, BorderThickness = new Thickness(1), Margin = new Thickness(0, 4, 0, 4), Child = scroller };
+        var root = new Grid(); root.Children.Add(frame);
+        controls = Theme.IconButton("\uE70E", "Dock controls — six settings", () => { Native.GetWindowRect(new WindowInteropHelper(this).Handle, out var bounds); shell.OpenDockControls(MonitorHandle, bounds); });
+        controls.Width = 32; controls.Height = 14; controls.MinHeight = 0; controls.MaxHeight = 14; controls.Padding = new Thickness(0); controls.HorizontalAlignment = HorizontalAlignment.Center; controls.VerticalAlignment = VerticalAlignment.Top; controls.Background = Theme.Raised; controls.Foreground = Theme.Accent; root.Children.Add(controls); Content = root;
+        if (controls.Content is TextBlock glyph) glyph.FontSize = 10;
+        launcher = Theme.Button(Theme.Logo(26), "Open apps \u2014 Windows key", () => shell.ToggleLauncher(MonitorHandle)); launcher.Width = 50;
+        arrange = Theme.IconButton("\uE740", "Arrange windows", () => shell.OpenArrange(MonitorHandle)); arrange.Width = 40;
+        showDesktop = Theme.IconButton("\uE7F4", "Show desktop and restore windows", shell.ToggleDesktop); showDesktop.Width = 40;
+        SourceInitialized += (_, _) =>
+        {
+            Native.ToolWindow(this); appbar = new AppBar(this, monitor, 3, shell.Config.DockHeight, true, shell.Config.ReplaceTaskbar); Refresh(true);
+            shell.DockInteraction.Register(this);
+        };
+        Closed += (_, _) => { shell.DockInteraction.Unregister(this); appbar?.Dispose(); };
+        MouseEnter += (_, _) => shell.DockInteraction.Refresh();
+        PreviewMouseDown += (_, _) => { if (!InputPassThrough) shell.DockInteraction.Touch(this); };
+        PreviewKeyDown += (_, _) => shell.DockInteraction.Touch(this);
+        var menu = new ContextMenu(); menu.Items.Add(Theme.Item("Dock controls", () => { Native.GetWindowRect(new WindowInteropHelper(this).Handle, out var bounds); shell.OpenDockControls(MonitorHandle, bounds); })); menu.Items.Add(Theme.Item("Apps", () => shell.ToggleLauncher(MonitorHandle))); menu.Items.Add(Theme.Item("Mods", shell.OpenMods)); menu.Items.Add(Theme.Item("Desktop profiles", shell.OpenProfiles)); menu.Items.Add(Theme.Item("Dock appearance", shell.OpenAppearance)); ContextMenu = menu;
+        menu.Closed += (_, _) => shell.DockInteraction.Touch(this);
+        PreviewMouseUp += (_, _) => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, new Action(() => Refresh()));
+        PreviewMouseWheel += (_, e) => { var app = apps.Values.FirstOrDefault(a => a.Button.IsMouseOver); if (app != null && app.Wheel(e.Delta, (System.Windows.Input.Keyboard.Modifiers & ModifierKeys.Alt) != 0)) { e.Handled = true; return; } if (scroller.ScrollableWidth > 0) { scroller.ScrollToHorizontalOffset(scroller.HorizontalOffset - e.Delta * .6); e.Handled = true; } };
+        AllowDrop = true;
+        DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Link : DragDropEffects.None; e.Handled = true; };
+        Drop += (_, e) =>
+        {
+            if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths) return;
+            foreach (string path in paths)
+            {
+                if (!File.Exists(path)) continue; string ext = Path.GetExtension(path).ToLowerInvariant();
+                if (ext is not ".lnk" and not ".exe" and not ".url") continue;
+                shell.Pin(new Pin { Name = Path.GetFileNameWithoutExtension(path), Path = path, Target = ext == ".lnk" ? Catalog.Resolve(path) : path });
+            }
+        };
+    }
+    static Border Divider() => new() { Width = 1, Height = 26, Background = Theme.Line, Margin = new Thickness(6, 0, 6, 0) };
+    internal void SetInputMode(bool passThrough, double fadedOpacity)
+    {
+        var h = new WindowInteropHelper(this).Handle;
+        if (InputPassThrough != passThrough && h != IntPtr.Zero)
+        {
+            long style = Native.GetWindowLong(h, -20).ToInt64(); const long flags = 0x08000020;
+            InputPassThrough = passThrough; IsHitTestVisible = !passThrough;
+            Native.SetWindowLong(h, -20, new IntPtr(passThrough ? style | flags : style & ~flags));
+        }
+        double desired = passThrough ? fadedOpacity : 1;
+        if (Math.Abs(opacityTarget - desired) > .001)
+        {
+            double from = Opacity; opacityTarget = desired; BeginAnimation(OpacityProperty, null); Opacity = desired;
+            if (IsVisible && Settings.TestDataDir == null && shell.Config.DockMotionMilliseconds > 0) BeginAnimation(OpacityProperty, new DoubleAnimation(from, desired, TimeSpan.FromMilliseconds(shell.Config.DockMotionMilliseconds)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop });
+        }
+    }
+    internal void Refresh(bool force = false)
+    {
+        if (IsMouseCaptureWithin || (IsMouseOver && (Mouse.LeftButton == MouseButtonState.Pressed || Mouse.RightButton == MouseButtonState.Pressed || Mouse.MiddleButton == MouseButtonState.Pressed)) || openMenu?.IsOpen == true || apps.Values.Any(a => a.Button.ContextMenu?.IsOpen == true)) return;
+        Height = shell.Config.DockHeight; frame.CornerRadius = new CornerRadius(shell.Config.DockRadius); appbar?.Configure(shell.Config.DockHeight, shell.Config.DockAlignment);
+        double buttonHeight = shell.Config.IconSize + 14; launcher.Height = arrange.Height = showDesktop.Height = buttonHeight;
+        var desired = new List<UIElement> { launcher, pinnedDivider }; var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase); var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var windows = shell.Tracker.Windows.Where(w => !shell.Tweaks.Has("dock-monitor-only") || w.Monitor == MonitorHandle).ToList();
+        foreach (var pin in shell.Config.Pins)
+        {
+            string token = "pin:" + pin.Path; var group = windows.Where(w => w.Matches(pin)).ToList();
+            Add(token, pin.Name, pin.Path, pin, pin.Target, group); foreach (var w in group) included.Add(w.Key);
+        }
+        var running = windows.Where(w => w.Monitor == MonitorHandle && !included.Contains(w.Key)).GroupBy(w => w.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+        runningOrder.RemoveAll(key => !running.ContainsKey(key));
+        foreach (string key in running.Keys.Where(key => !runningOrder.Contains(key, StringComparer.OrdinalIgnoreCase)).OrderBy(key => key, StringComparer.OrdinalIgnoreCase)) runningOrder.Add(key);
+        if (running.Count > 0) desired.Add(runningDivider);
+        foreach (string key in runningOrder)
+        {
+            var group = running[key]; var first = group[0];
+            string name = shell.Catalog.Apps.FirstOrDefault(a => Shell.KeysMatch(a.Target, first.Key))?.Name ?? (first.AppId.Length > 0 ? first.Title : first.ProcessName);
+            Add("run:" + key, name, first.LaunchPath, null, key, group);
+        }
+        desired.Add(endDivider); desired.Add(arrange); desired.Add(showDesktop);
+        // Reconcile only changed positions. Existing buttons keep mouse capture, focus and UIA identity.
+        for (int i = 0; i < desired.Count; i++)
+        {
+            if (i < items.Children.Count && ReferenceEquals(items.Children[i], desired[i])) continue;
+            if (items.Children.Contains(desired[i])) items.Children.Remove(desired[i]); items.Children.Insert(i, desired[i]);
+        }
+        while (items.Children.Count > desired.Count) items.Children.RemoveAt(items.Children.Count - 1);
+        foreach (string key in apps.Keys.Where(key => !keep.Contains(key)).ToArray()) apps.Remove(key);
+        items.Measure(new Size(double.PositiveInfinity, buttonHeight + 8));
+        double width = Math.Min(items.DesiredSize.Width + 2, Native.Monitor(MonitorHandle).Monitor.Width / Native.Scale(MonitorHandle) - 24);
+        if (Math.Abs(Width - width) > .5) { Width = width; appbar?.SetWidth(width); }
+        UpdateActive();
+        void Add(string token, string name, string path, Pin? pin, string groupKey, List<WindowEntry> group)
+        {
+            if (!apps.TryGetValue(token, out var app)) apps[token] = app = new DockApp(this, token);
+            app.Update(name, path, pin, groupKey, group); desired.Add(app.Button); keep.Add(token);
+        }
+    }
+    void UpdateActive()
+    {
+        IntPtr foreground = Native.GetForegroundWindow();
+        foreach (var app in apps.Values) app.SetActive(foreground);
+    }
+    internal void Tick()
+    {
+        Refresh(); bool hide = shell.HideBars(MonitorHandle); appbar?.SetOverlay(shell.Config.ReplaceTaskbar); appbar?.SetSuspended(hide);
+        if (hide && IsVisible) Hide(); else if (!hide && !IsVisible) { Show(); appbar?.Position(); }
+    }
+    sealed class DockApp
+    {
+        readonly Dock dock;
+        readonly Border indicator = new() { Height = 3, CornerRadius = new CornerRadius(2), VerticalAlignment = VerticalAlignment.Bottom };
+        readonly TextBlock caption = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 10, 0) };
+        internal readonly Button Button;
+        Pin? pin;
+        string name = "", path = "", groupKey = "", iconSpec = "";
+        List<WindowEntry> windows = new();
+        internal DockApp(Dock dock, string token)
+        {
+            this.dock = dock; Button = Theme.Button("", token, Click); AutomationProperties.SetAutomationId(Button, token);
+            var lift = new TranslateTransform(); Button.RenderTransform = lift;
+            Button.MouseEnter += (_, _) => Animate(-3); Button.MouseLeave += (_, _) => Animate(0);
+            Button.Padding = new Thickness(3, 0, 3, 0); Button.Margin = new Thickness(1, 0, 1, 0); Button.ContextMenu = new ContextMenu();
+            Button.ContextMenu.Closed += (_, _) => { dock.shell.DockInteraction.Touch(dock); dock.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, new Action(() => dock.Refresh())); };
+            Button.ContextMenuOpening += (_, _) => Menu(Button.ContextMenu!);
+            Button.PreviewMouseDown += (_, e) =>
+            {
+                if (e.ChangedButton != MouseButton.Middle) return;
+                if (dock.shell.Tweaks.Has("dock-middle-close")) { var before = Native.ForegroundBeforeClick(dock); var current = Current(); var target = current.FirstOrDefault(w => w.Handle == before) ?? current.FirstOrDefault(); if (target != null) Native.PostMessage(target.Handle, 0x10, IntPtr.Zero, IntPtr.Zero); e.Handled = true; }
+                else if (pin != null) { dock.shell.Launch(pin.Path); e.Handled = true; }
+            };
+            void Animate(double y) { int ms = dock.shell.Config.DockMotionMilliseconds; if (ms <= 0 || Settings.TestDataDir != null || !dock.IsVisible) { lift.BeginAnimation(TranslateTransform.YProperty, null); lift.Y = y; return; } double from = lift.Y; lift.BeginAnimation(TranslateTransform.YProperty, null); lift.Y = y; lift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(from, y, TimeSpan.FromMilliseconds(ms)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop }); }
+        }
+        internal void Update(string name, string path, Pin? pin, string key, List<WindowEntry> current)
+        {
+            this.name = name; this.path = path; this.pin = pin; groupKey = key; windows = current;
+            string label = name + (current.Count > 0 ? $" ({current.Count} open)" : ""); Button.ToolTip = label; AutomationProperties.SetName(Button, label);
+            var labels = dock.shell.Tweaks.Module("dock-labels"); bool labeled = labels != null && (current.Count > 0 || dock.shell.Mods.Value(labels, "when", "always") == "always");
+            int labelWidth = labels == null ? 0 : (int)dock.shell.Mods.Number(labels, "width", 130, 50, 240);
+            int size = dock.shell.Config.IconSize; string spec = path + "|" + name + "|" + size + "|" + labeled + "|" + labelWidth;
+            caption.Text = labels != null && dock.shell.Mods.Value(labels, "label", "app") == "window" ? (current.FirstOrDefault(w => w.Handle == Native.GetForegroundWindow()) ?? current.FirstOrDefault())?.Title ?? name : name;
+            if (spec != iconSpec)
+            {
+                iconSpec = spec;
+                if (Button.Content is Panel old) { old.Children.Remove(indicator); old.Children.Remove(caption); }
+                var grid = new Grid { Width = size + 16 + (labeled ? labelWidth : 0), Height = size + 14 };
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(size + 16) }); if (labeled) grid.ColumnDefinitions.Add(new ColumnDefinition());
+                var icon = Theme.AppIcon(path, name, size); icon.VerticalAlignment = VerticalAlignment.Top; icon.Margin = new Thickness(0, 3, 0, 0); grid.Children.Add(icon); grid.Children.Add(indicator); Button.Content = grid;
+                if (labeled) { Grid.SetColumn(caption, 1); grid.Children.Add(caption); }
+            }
+            Button.Height = size + 14; indicator.Visibility = current.Count > 0 ? Visibility.Visible : Visibility.Hidden;
+        }
+        List<WindowEntry> Current() => dock.shell.Tracker.Windows.Where(w => (!dock.shell.Tweaks.Has("dock-monitor-only") || w.Monitor == dock.MonitorHandle) && (pin != null ? w.Matches(pin) : w.Key.Equals(groupKey, StringComparison.OrdinalIgnoreCase))).ToList();
+        internal bool Wheel(int delta, bool alt)
+        {
+            var current = Current();
+            if (alt && dock.shell.Tweaks.Module("dock-wheel-volume") is { } volume)
+            {
+                var pids = current.Select(w => { Native.GetWindowThreadProcessId(w.Handle, out uint pid); return pid; }).Where(pid => pid != 0).Distinct().ToList();
+                var paths = current.Select(w => w.Path).Where(p => p.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                int changed = Audio.AdjustApp(pids, paths, Math.Sign(delta) * (float)dock.shell.Mods.Number(volume, "step", 3, 1, 20) / 100);
+                Button.ToolTip = changed == 0 ? name + " · no active audio session" : name + " · app volume " + (delta > 0 ? "increased" : "decreased"); return true;
+            }
+            if (dock.shell.Tweaks.Module("dock-scroll-windows") is not { } cycle) return false;
+            current = current.Where(w => dock.shell.Mods.Value(cycle, "minimized", "yes") == "yes" || !Native.IsIconic(w.Handle)).OrderBy(w => w.Handle.ToInt64()).ToList();
+            if (current.Count == 0) return false;
+            int index = current.FindIndex(w => w.Handle == Native.GetForegroundWindow()), direction = Math.Sign(delta) * (dock.shell.Mods.Value(cycle, "direction", "normal") == "normal" ? -1 : 1);
+            Native.Activate(current[(index < 0 ? 0 : (index + direction + current.Count) % current.Count)].Handle); return true;
+        }
+        void Click()
+        {
+            var current = Current();
+            if (current.Count == 0) { if (pin != null) dock.shell.Launch(pin.Path); return; }
+            if (current.Count == 1) { Native.Activate(current[0].Handle, true, Native.ForegroundBeforeClick(dock)); return; }
+            var menu = new ContextMenu(); foreach (var w in current) menu.Items.Add(Theme.Item(w.Title, () => Native.Activate(w.Handle)));
+            dock.openMenu = menu; menu.Closed += (_, _) => { dock.openMenu = null; dock.Refresh(); }; menu.PlacementTarget = Button; menu.IsOpen = true;
+        }
+        void Menu(ContextMenu menu)
+        {
+            menu.Items.Clear(); var current = Current(); string exe = current.FirstOrDefault()?.Path ?? "";
+            if (exe.Length > 0) { var game = Theme.Item("Treat as game", () => dock.shell.ToggleGame(exe)); game.IsCheckable = true; game.IsChecked = dock.shell.Games.IsGame(exe); menu.Items.Add(game); }
+            if (current.FirstOrDefault() is { } window) menu.Items.Add(Theme.Item("Mods for this app", () => dock.shell.OpenAppMods(window)));
+            if (pin != null)
+            {
+                menu.Items.Add(Theme.Item("Open new window", () => dock.shell.Launch(pin.Path))); menu.Items.Add(Theme.Item("Unpin", () => dock.shell.Unpin(pin)));
+                menu.Items.Add(Theme.Item("Move left", () => dock.shell.MovePin(pin, -1))); menu.Items.Add(Theme.Item("Move right", () => dock.shell.MovePin(pin, 1)));
+            }
+            else if (path.StartsWith("shell:AppsFolder", StringComparison.OrdinalIgnoreCase) || File.Exists(path)) menu.Items.Add(Theme.Item("Pin to dock", () => dock.shell.Pin(new Pin { Name = name, Path = path, Target = groupKey })));
+            if (current.Count > 0)
+            {
+                menu.Items.Add(new Separator()); foreach (var w in current) menu.Items.Add(Theme.Item(w.Title.Length > 70 ? w.Title[..70] + "..." : w.Title, () => Native.Activate(w.Handle)));
+                menu.Items.Add(Theme.Item(current.Count == 1 ? "Close window" : "Close windows", () => { foreach (var w in Current()) Native.PostMessage(w.Handle, 0x10, IntPtr.Zero, IntPtr.Zero); }));
+                if (current.All(w => w.ProcessName is not "ApplicationFrameHost" and not "Harbor Files" && !w.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))) menu.Items.Add(Theme.Item("End task", () => { var targets = Current().Select(w => { Native.GetWindowThreadProcessId(w.Handle, out uint p); return (Pid: p, w.Path); }).Where(t => t.Pid != 0 && t.Pid != Environment.ProcessId && t.Path.Length > 0 && Native.ProcessPath(t.Pid).Equals(t.Path, StringComparison.OrdinalIgnoreCase)).Distinct(); foreach (var target in targets) try { using var process = System.Diagnostics.Process.GetProcessById((int)target.Pid); process.Kill(); } catch (Exception ex) { dock.shell.Notifications.Add("App could not be ended", ex.Message); } }));
+            }
+        }
+        internal void SetActive(IntPtr active) { bool selected = windows.Any(w => w.Handle == active); indicator.Background = selected ? Theme.Accent : Theme.Muted; indicator.Width = selected ? 20 : windows.Count > 1 ? 18 : 5; }
+    }
+}

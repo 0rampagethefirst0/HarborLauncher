@@ -1,0 +1,335 @@
+{
+  "Width": 720,
+  "Height": 400,
+  "Columns": 6,
+  "Frames": 24,
+  "FrameMilliseconds": 125,
+  "SampleData": true,
+  "DesktopChanged": false,
+  "Items": [
+    {
+      "Id": "harbor.title-actions",
+      "Component": "title-actions",
+      "Renderer": "title-actions",
+      "Caption": "Double-click the bar title to maximize. Right-click it for window actions.",
+      "FrameCount": 24,
+      "Poster": "harbor.title-actions.png",
+      "Film": "harbor.title-actions-film.png"
+    },
+    {
+      "Id": "harbor.window-topmost",
+      "Component": "window-topmost",
+      "Renderer": "window-topmost",
+      "Caption": "Focus another app. The pinned Notepad window stays above it.",
+      "FrameCount": 24,
+      "Poster": "harbor.window-topmost.png",
+      "Film": "harbor.window-topmost-film.png"
+    },
+    {
+      "Id": "harbor.launchpad",
+      "Component": "launchpad",
+      "Renderer": "native-widget",
+      "Caption": "Your own shortcuts open apps and websites.",
+      "FrameCount": 24,
+      "Poster": "harbor.launchpad.png",
+      "Film": "harbor.launchpad-film.png"
+    },
+    {
+      "Id": "harbor.window-placement",
+      "Component": "window-placement",
+      "Renderer": "window-placement",
+      "Caption": "Example region: Right. Launch Notepad directly into that screen region.",
+      "FrameCount": 24,
+      "Poster": "harbor.window-placement.png",
+      "Film": "harbor.window-placement-film.png"
+    },
+    {
+      "Id": "harbor.dock-wheel-volume",
+      "Component": "dock-wheel-volume",
+      "Renderer": "dock-wheel-volume",
+      "Caption": "Alt \u002B scroll changes Music\u2019s volume. Game volume stays at 70%.",
+      "FrameCount": 24,
+      "Poster": "harbor.dock-wheel-volume.png",
+      "Film": "harbor.dock-wheel-volume-film.png"
+    },
+    {
+      "Id": "harbor.tasks",
+      "Component": "tasks",
+      "Renderer": "native-widget",
+      "Caption": "Check off individual tasks and keep your progress.",
+      "FrameCount": 24,
+      "Poster": "harbor.tasks.png",
+      "Film": "harbor.tasks-film.png"
+    },
+    {
+      "Id": "harbor.clipboard",
+      "Component": "clipboard",
+      "Renderer": "native-widget",
+      "Caption": "Each copied text becomes another reusable clipboard item.",
+      "FrameCount": 24,
+      "Poster": "harbor.clipboard.png",
+      "Film": "harbor.clipboard-film.png"
+    },
+    {
+      "Id": "harbor.day-planner",
+      "Component": "dashboard",
+      "Renderer": "native-widget",
+      "Caption": "A checklist, focus timer and editable notes together.",
+      "FrameCount": 24,
+      "Poster": "harbor.day-planner.png",
+      "Film": "harbor.day-planner-film.png"
+    },
+    {
+      "Id": "harbor.calculator",
+      "Component": "calculator",
+      "Renderer": "native-widget",
+      "Caption": "Type an expression. The answer is calculated immediately.",
+      "FrameCount": 24,
+      "Poster": "harbor.calculator.png",
+      "Film": "harbor.calculator-film.png"
+    },
+    {
+      "Id": "harbor.clock",
+      "Component": "clock",
+      "Renderer": "native-widget",
+      "Caption": "Your clock and date update on the desktop.",
+      "FrameCount": 24,
+      "Poster": "harbor.clock.png",
+      "Film": "harbor.clock-film.png"
+    },
+    {
+      "Id": "harbor.dock-labels",
+      "Component": "dock-labels",
+      "Renderer": "dock-labels",
+      "Caption": "App names appear beside the dock icons, rather than icons alone.",
+      "FrameCount": 24,
+      "Poster": "harbor.dock-labels.png",
+      "Film": "harbor.dock-labels-film.png"
+    },
+    {
+      "Id": "harbor.storage",
+      "Component": "storage",
+      "Renderer": "native-widget",
+      "Caption": "Free and total capacity for each chosen drive.",
+      "FrameCount": 24,
+      "Poster": "harbor.storage.png",
+      "Film": "harbor.storage-film.png"
+    },
+    {
+      "Id": "harbor.ember",
+      "Component": "",
+      "Renderer": "shell-palette",
+      "Caption": "Before \u2192 Ember: the bar, dock, menus and widgets use the new palette.",
+      "FrameCount": 24,
+      "Poster": "harbor.ember.png",
+      "Film": "harbor.ember-film.png"
+    },
+    {
+      "Id": "harbor.focus",
+      "Component": "focus",
+      "Renderer": "native-widget",
+      "Caption": "Start a countdown, pause it, or reset the session.",
+      "FrameCount": 24,
+      "Poster": "harbor.focus.png",
+      "Film": "harbor.focus-film.png"
+    },
+    {
+      "Id": "harbor.forest",
+      "Component": "",
+      "Renderer": "shell-palette",
+      "Caption": "Before \u2192 Forest: the bar, dock, menus and widgets use the new palette.",
+      "FrameCount": 24,
+      "Poster": "harbor.forest.png",
+      "Film": "harbor.forest-film.png"
+    },
+    {
+      "Id": "harbor.dock-middle-close",
+      "Component": "dock-middle-close",
+      "Renderer": "dock-middle-close",
+      "Caption": "Middle-click the dock icon. Its front window closes; the other remains.",
+      "FrameCount": 24,
+      "Poster": "harbor.dock-middle-close.png",
+      "Film": "harbor.dock-middle-close-film.png"
+    },
+    {
+      "Id": "harbor.midnight",
+      "Component": "",
+      "Renderer": "shell-palette",
+      "Caption": "Before \u2192 Midnight: the bar, dock, menus and widgets use the new palette.",
+      "FrameCount": 24,
+      "Poster": "harbor.midnight.png",
+      "Film": "harbor.midnight-film.png"
+    },
+    {
+      "Id": "harbor.dock-monitor-only",
+      "Component": "dock-monitor-only",
+      "Renderer": "dock-monitor-only",
+      "Caption": "Each dock shows running indicators only for windows on its own display.",
+      "FrameCount": 24,
+      "Poster": "harbor.dock-monitor-only.png",
+      "Film": "harbor.dock-monitor-only-film.png"
+    },
+    {
+      "Id": "harbor.network",
+      "Component": "network",
+      "Renderer": "native-widget",
+      "Caption": "Download and upload rates update separately.",
+      "FrameCount": 24,
+      "Poster": "harbor.network.png",
+      "Film": "harbor.network-film.png"
+    },
+    {
+      "Id": "harbor.plum",
+      "Component": "",
+      "Renderer": "shell-palette",
+      "Caption": "Before \u2192 Plum: the bar, dock, menus and widgets use the new palette.",
+      "FrameCount": 24,
+      "Poster": "harbor.plum.png",
+      "Film": "harbor.plum-film.png"
+    },
+    {
+      "Id": "harbor.folders",
+      "Component": "folders",
+      "Renderer": "native-widget",
+      "Caption": "One click opens the chosen folder in Harbor Files.",
+      "FrameCount": 24,
+      "Poster": "harbor.folders.png",
+      "Film": "harbor.folders-film.png"
+    },
+    {
+      "Id": "harbor.notes",
+      "Component": "notes",
+      "Renderer": "native-widget",
+      "Caption": "Type directly on your desktop. Notes save locally.",
+      "FrameCount": 24,
+      "Poster": "harbor.notes.png",
+      "Film": "harbor.notes-film.png"
+    },
+    {
+      "Id": "harbor.window-memory",
+      "Component": "window-memory",
+      "Renderer": "window-memory",
+      "Caption": "Move the window, close it, then reopen it in the saved position.",
+      "FrameCount": 24,
+      "Poster": "harbor.window-memory.png",
+      "Film": "harbor.window-memory-film.png"
+    },
+    {
+      "Id": "harbor.resource-desk",
+      "Component": "dashboard",
+      "Renderer": "native-widget",
+      "Caption": "CPU, RAM, free space and uptime in a single dashboard.",
+      "FrameCount": 24,
+      "Poster": "harbor.resource-desk.png",
+      "Film": "harbor.resource-desk-film.png"
+    },
+    {
+      "Id": "harbor.toolbar-wheel-volume",
+      "Component": "toolbar-wheel-volume",
+      "Renderer": "toolbar-wheel-volume",
+      "Caption": "Scroll on the top bar to change the system volume.",
+      "FrameCount": 24,
+      "Poster": "harbor.toolbar-wheel-volume.png",
+      "Film": "harbor.toolbar-wheel-volume-film.png"
+    },
+    {
+      "Id": "harbor.dock-scroll-windows",
+      "Component": "dock-scroll-windows",
+      "Renderer": "dock-scroll-windows",
+      "Caption": "Scroll over one dock icon to cycle that app\u2019s three windows.",
+      "FrameCount": 24,
+      "Poster": "harbor.dock-scroll-windows.png",
+      "Film": "harbor.dock-scroll-windows-film.png"
+    },
+    {
+      "Id": "harbor.sound-desk",
+      "Component": "dashboard",
+      "Renderer": "native-widget",
+      "Caption": "Change volume, mute, and control media in one panel.",
+      "FrameCount": 24,
+      "Poster": "harbor.sound-desk.png",
+      "Film": "harbor.sound-desk-film.png"
+    },
+    {
+      "Id": "harbor.stopwatch",
+      "Component": "stopwatch",
+      "Renderer": "native-widget",
+      "Caption": "Count up from zero, pause, and reset.",
+      "FrameCount": 24,
+      "Poster": "harbor.stopwatch.png",
+      "Film": "harbor.stopwatch-film.png"
+    },
+    {
+      "Id": "harbor.system",
+      "Component": "system",
+      "Renderer": "native-widget",
+      "Caption": "CPU history changes while RAM usage stays visible.",
+      "FrameCount": 24,
+      "Poster": "harbor.system.png",
+      "Film": "harbor.system-film.png"
+    },
+    {
+      "Id": "harbor.clock-seconds",
+      "Component": "clock-seconds",
+      "Renderer": "clock-seconds",
+      "Caption": "Add seconds and your chosen date/time format to the real toolbar clock.",
+      "FrameCount": 24,
+      "Poster": "harbor.clock-seconds.png",
+      "Film": "harbor.clock-seconds-film.png"
+    },
+    {
+      "Id": "harbor.converter",
+      "Component": "converter",
+      "Renderer": "native-widget",
+      "Caption": "Change units: 100 km/h becomes 62.137119 mph.",
+      "FrameCount": 24,
+      "Poster": "harbor.converter.png",
+      "Film": "harbor.converter-film.png"
+    },
+    {
+      "Id": "harbor.uptime",
+      "Component": "uptime",
+      "Renderer": "native-widget",
+      "Caption": "Time since the last Windows boot, down to the second.",
+      "FrameCount": 24,
+      "Poster": "harbor.uptime.png",
+      "Film": "harbor.uptime-film.png"
+    },
+    {
+      "Id": "harbor.window-desk",
+      "Component": "dashboard",
+      "Renderer": "native-widget",
+      "Caption": "Open apps, files, alerts and window layouts from one desk.",
+      "FrameCount": 24,
+      "Poster": "harbor.window-desk.png",
+      "Film": "harbor.window-desk-film.png"
+    },
+    {
+      "Id": "harbor.layouts",
+      "Component": "layouts",
+      "Renderer": "native-widget",
+      "Caption": "Columns, Grid, Stack and Undo rearrange your windows.",
+      "FrameCount": 24,
+      "Poster": "harbor.layouts.png",
+      "Film": "harbor.layouts-film.png"
+    },
+    {
+      "Id": "harbor.window-opacity",
+      "Component": "window-opacity",
+      "Renderer": "window-opacity",
+      "Caption": "Example: lower opacity to 55% and see the files behind the window.",
+      "FrameCount": 24,
+      "Poster": "harbor.window-opacity.png",
+      "Film": "harbor.window-opacity-film.png"
+    },
+    {
+      "Id": "harbor.world-clock",
+      "Component": "world-clock",
+      "Renderer": "native-widget",
+      "Caption": "Local time 08:25 \u00B7 Tokyo time 21:25, at the same moment.",
+      "FrameCount": 24,
+      "Poster": "harbor.world-clock.png",
+      "Film": "harbor.world-clock-film.png"
+    }
+  ]
+}
