@@ -23,7 +23,7 @@ public sealed class DesktopProfile
 
 internal static class Profiles
 {
-    internal static readonly string[] AppearanceKeys = { "IconSize", "TopBarHeight", "DockHeight", "DockRadius", "DockAlignment", "DockHoverThrough", "DockFadeOpacity", "DockInteractionDelay", "DockQuietWhileTyping", "DockMotionMilliseconds", "ShowActiveTitle", "ShowMedia", "ShowClock", "ShowNetwork", "ShowFilesButton", "ShowModsButton", "ShowStats", "Use24HourClock", "BackgroundColor", "PanelColor", "TextColor", "MutedColor", "RaisedColor", "BorderColor", "Accent" };
+    internal static readonly string[] AppearanceKeys = { "TopDockEnabled", "TopDockPrimaryOnly", "TopDockReserveSpace", "TopDockOnTop", "TopDockShowBorder", "TopDockBrandText", "TopDockSeconds", "TopDockFontSize", "TopDockIconSize", "TopDockPadding", "TopDockGap", "TopDockRadius", "TopDockTitleWidth", "TopDockOpacity", "TopDockItems", "TaskbarDividers", "PreviewFramesPerSecond", "IconSize", "TopBarHeight", "DockHeight", "DockRadius", "DockAlignment", "DockHoverThrough", "DockFadeOpacity", "DockInteractionDelay", "DockQuietWhileTyping", "DockMotionMilliseconds", "ShowActiveTitle", "ShowMedia", "ShowClock", "ShowNetwork", "ShowFilesButton", "ShowModsButton", "ShowStats", "Use24HourClock", "BackgroundColor", "PanelColor", "TextColor", "MutedColor", "RaisedColor", "BorderColor", "Accent" };
     static bool Allowed(ModDefinition mod, string key) => mod.Options.Any(o => o.Key == key) || (key.Length < 16 && (key.StartsWith("x-") || key.StartsWith("y-")) && key[2..].All(char.IsDigit));
     internal static DesktopProfile Capture(Settings config, Mods mods, string name)
     {
@@ -78,6 +78,7 @@ internal static class Profiles
             }
             config.ModOptions = merged; mods.SetEnabledSet(requested);
             foreach (var pair in profile.Appearance) { var property = typeof(Settings).GetProperty(pair.Key)!; property.SetValue(config, pair.Value.Deserialize(property.PropertyType)); }
+            if (!profile.Appearance.ContainsKey("TopDockItems")) config.TopDockItems = BarLayout.Defaults(config);
             config.Normalize(); config.PreviousProfile = previous; config.Save();
         }
         catch

@@ -1,4 +1,4 @@
-# Harbor 0.5.1
+# Harbor 0.6.0
 
 A native Windows shell with a desktop, top bar, dock, Apps screen, file manager, notification center, settings, and native mods. Run **App\Harbor.exe** or the Harbor shortcut. Requires .NET 9 Windows Desktop Runtime x64.
 
@@ -48,10 +48,12 @@ To remove Harbor, exit it, disable **Start Harbor when I sign in**, and remove i
 In 0.5.1 all 36 bundled packages have their own demonstration: the 20 widgets/dashboards use the actual native controls with deterministic sample data, the four themes show the whole shell palette changing, and each of the 12 behavior mods has its own staged desktop example. Hover a banner to play it; the featured/detail preview starts automatically. Only one preview plays at once, playback stops when the catalog loses focus, and motion zero keeps posters static. Example windows and values are labeled as previews; they do not manipulate your real apps, clipboard, audio or saved data.
 
 
-## Preview gallery
+## 0.6 changes
 
-![Examples of all 36 Harbor mods](docs/previews.png)
+Previews run at **30 FPS** with 96 recorded frames per clip. Captions and preset descriptions now explain the action and result in plain language. Playback stays limited to one active preview and stops when Harbor loses focus; choose 12?30 FPS in Dock controls.
 
-See [Harbor Mods](https://harbor-mods.orangemole11.chatgpt.site) for animated demonstrations and community uploads. The videos use sample data and staged desktop examples.
+**Harbor Files** has tabs, clickable breadcrumbs, an editable path, icon grid and details views, folder-first sorting, search per tab, pinned folders, and image/text previews. Large grids show 200 items per page; details remain virtualized. Copy, cut, paste, rename, new folders, drag/drop, and recycling remain available. Transfers show progress and can stop after the current item. Existing names are never overwritten silently. Ctrl+T opens a tab, Ctrl+W closes it, Ctrl+Tab switches tabs, Ctrl+L edits the path, Ctrl+F searches, and Alt+Left/Right navigates history.
 
-To build on another PC, install the .NET 9 SDK with Windows desktop support, then run `powershell -File .\build.ps1`. The current desktop executable also needs the .NET 9 Windows Desktop runtime. Use `Ctrl+Alt+F12` or `Restore Windows.cmd` to restore Windows.
+The **Dock is the top bar**. Click its small downward arrow or right-click it for Dock controls. Buttons can be dragged, moved between left/center/right groups, or hidden. Add lines or spaces between them. The Buttons, Style, and Behavior pages control sizing, spacing, rounding, opacity, borders, clock options, visibility, monitor placement and screen-space reservation. You can restore a hidden Dock from the bottom taskbar?s context menu or Harbor settings. Desktop profiles include these choices.
+
+The bottom **taskbar** keeps its existing click-through and typing behavior. Right-click an app to add a divider before or after it. Right-click the divider again to change it to a space or remove it.

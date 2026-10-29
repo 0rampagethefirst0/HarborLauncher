@@ -101,6 +101,7 @@ internal static class Verification
             TweakVerification.Run(directory, model, Check);
             CatalogVerification.Run(model, Check);
             PreviewVerification.Run(model, Check);
+            ShellUiVerification.Run(directory, Check);
             app.Shutdown();
         }
         catch (Exception ex) { results.Add(new { Name = "Verification finished", Passed = false, Detail = ex.ToString() }); }

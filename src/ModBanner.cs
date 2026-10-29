@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -38,7 +39,8 @@ internal sealed class ModBanner : Border
     readonly Settings config;
     readonly ModDefinition mod;
     readonly bool autoplay;
-    readonly DispatcherTimer clock = new() { Interval = TimeSpan.FromMilliseconds(125) };
+    readonly DispatcherTimer clock = new() { Interval = TimeSpan.FromMilliseconds(ModDemoScene.FrameMilliseconds) };
+    readonly Stopwatch playback = new();
     readonly TextBlock playLabel = Theme.Label("Hover to play", 10, Theme.Brush("#E5EFFD"));
     BitmapSource? poster, film;
     Window? owner;
@@ -69,9 +71,10 @@ internal sealed class ModBanner : Border
         }
         clock.Tick += (_, _) => {
             if (!IsVisible || owner?.IsActive != true || config.DockMotionMilliseconds == 0) { Stop(); return; }
-            if (frame >= ModDemoScene.Frames) { if (!autoplay) { Stop(); return; } frame = -8; }
-            if (frame < 0) { frame++; return; }
-            SetFrame(frame++);
+            clock.Interval = TimeSpan.FromMilliseconds(1000d / config.PreviewFramesPerSecond);
+            int current = (int)(playback.Elapsed.TotalMilliseconds / ModDemoScene.FrameMilliseconds);
+            if (current >= ModDemoScene.Frames + 30) { if (!autoplay) { Stop(); return; } playback.Restart(); current = 0; }
+            current = Math.Min(current, ModDemoScene.Frames - 1); if (current != frame) { frame = current; SetFrame(frame); }
         };
         MouseEnter += (_, _) => Start(); MouseLeave += (_, _) => { if (!autoplay) Stop(); };
         Loaded += (_, _) => { owner = Window.GetWindow(this); if (owner != null) { owner.Activated += Active; owner.Deactivated += Inactive; } if (autoplay) Start(); };
@@ -84,14 +87,15 @@ internal sealed class ModBanner : Border
         if (custom || config.DockMotionMilliseconds == 0 || owner?.IsActive != true || !IsVisible) return;
         if (clock.IsEnabled) return;
         playing?.Stop(); film = Load(mod.Id + "-film.png"); if (film == null) return;
-        playing = this; frame = 0; playLabel.Text = "Preview playing"; SetFrame(frame++); clock.Start();
+        playing = this; frame = 0; playLabel.Text = "Preview playing"; SetFrame(0); playback.Restart(); clock.Interval = TimeSpan.FromMilliseconds(1000d / config.PreviewFramesPerSecond); clock.Start();
     }
     void SetFrame(int index)
     {
         if (film == null) return;
-        var crop = new CroppedBitmap(film, new Int32Rect(index % ModDemoScene.Columns * ModDemoScene.Width, index / ModDemoScene.Columns * ModDemoScene.Height, ModDemoScene.Width, ModDemoScene.Height)); crop.Freeze(); image.Source = crop;
+        var crop = new CroppedBitmap(film, new Int32Rect(index % ModDemoScene.Columns * ModDemoScene.FilmWidth, index / ModDemoScene.Columns * ModDemoScene.FilmHeight, ModDemoScene.FilmWidth, ModDemoScene.FilmHeight)); crop.Freeze(); image.Source = crop;
     }
-    void Stop() { clock.Stop(); image.Source = poster; film = null; playLabel.Text = "Hover to play"; if (ReferenceEquals(playing, this)) playing = null; }
+    internal void PreparePreviewFrame(int index) { film = Load(mod.Id + "-film.png"); SetFrame(Math.Clamp(index, 0, ModDemoScene.Frames - 1)); }
+    void Stop() { clock.Stop(); playback.Stop(); image.Source = poster; film = null; playLabel.Text = "Hover to play"; if (ReferenceEquals(playing, this)) playing = null; }
     static BitmapSource? Load(string name)
     {
         try { var info = Application.GetResourceStream(new Uri("pack://application:,,,/Harbor;component/Previews/" + name)); if (info == null) return null; using (info.Stream) return Decode(info.Stream, false); } catch (IOException) { return null; }

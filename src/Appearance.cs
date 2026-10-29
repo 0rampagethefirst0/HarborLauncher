@@ -33,13 +33,13 @@ internal sealed class Appearance : Window
         Heading("Size and position");
         var presets = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 12) };
         foreach (var preset in new[] { ("Compact", 30, 64, 24), ("Balanced", 38, 80, 32), ("Large", 46, 96, 40) }) { var button = Theme.Button(preset.Item1, preset.Item1 + " appearance preset", () => { top.Value = preset.Item2; dock.Value = preset.Item3; size.Value = preset.Item4; Preview(); }); button.Background = Theme.Raised; button.Margin = new Thickness(0, 0, 6, 0); presets.Children.Add(button); } body.Children.Add(presets);
-        Slider("Top bar height", top, shell.Config.TopBarHeight); Slider("Dock height", dock, shell.Config.DockHeight); Slider("Dock icon size", size, shell.Config.IconSize); Slider("Dock corner radius", radius, shell.Config.DockRadius);
-        var row = new DockPanel { Margin = new Thickness(0, 12, 0, 16) }; row.Children.Add(Theme.Label("Dock alignment", 13)); alignment.SelectedItem = shell.Config.DockAlignment; alignment.SelectionChanged += (_, _) => Preview(); DockPanel.SetDock(alignment, System.Windows.Controls.Dock.Right); row.Children.Insert(0, alignment); body.Children.Add(row);
-        Heading("Dock interaction");
-        Toggle("hover", "Let clicks through the dock when it covers an app", shell.Config.DockHoverThrough);
-        body.Children.Add(new TextBlock { Text = "Hover to reach the app below. The first right-click activates the dock; another right-click opens app menus. Typing in an app keeps its dock faded and click-through.", FontSize = 12, Foreground = Theme.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 10), LineHeight = 19 });
-        Slider("Faded dock opacity", faded, shell.Config.DockFadeOpacity * 100, "%"); Slider("Stay usable after leaving", hold, shell.Config.DockInteractionDelay / 1000.0, "s");
-        Heading("Top bar contents");
+        Slider("Dock height (top)", top, shell.Config.TopBarHeight); Slider("Taskbar height", dock, shell.Config.DockHeight); Slider("Dock icon size", size, shell.Config.IconSize); Slider("Taskbar corner radius", radius, shell.Config.DockRadius);
+        var row = new DockPanel { Margin = new Thickness(0, 12, 0, 16) }; row.Children.Add(Theme.Label("Taskbar alignment", 13)); alignment.SelectedItem = shell.Config.DockAlignment; alignment.SelectionChanged += (_, _) => Preview(); DockPanel.SetDock(alignment, System.Windows.Controls.Dock.Right); row.Children.Insert(0, alignment); body.Children.Add(row);
+        Heading("Taskbar interaction");
+        Toggle("hover", "Let clicks through the taskbar when it covers an app", shell.Config.DockHoverThrough);
+        body.Children.Add(new TextBlock { Text = "Hover to reach the app below. The first right-click activates the taskbar; another right-click opens app menus. Typing in an app keeps its taskbar faded and click-through.", FontSize = 12, Foreground = Theme.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 10), LineHeight = 19 });
+        Slider("Faded taskbar opacity", faded, shell.Config.DockFadeOpacity * 100, "%"); Slider("Stay usable after leaving", hold, shell.Config.DockInteractionDelay / 1000.0, "s");
+        Heading("Dock buttons (top)");
         Toggle("title", "Active window title", shell.Config.ShowActiveTitle); Toggle("clock", "Clock and calendar", shell.Config.ShowClock); Toggle("stats", "CPU and memory", shell.Config.ShowStats); Toggle("media", "Media controls", shell.Config.ShowMedia); Toggle("network", "Network status", shell.Config.ShowNetwork); Toggle("files", "Files button", shell.Config.ShowFilesButton); Toggle("mods", "Mods button", shell.Config.ShowModsButton);
         Heading("Base colors");
         Color("background", "Bars", shell.Config.BackgroundColor); Color("panel", "Panels", shell.Config.PanelColor); Color("accent", "Accent", shell.Config.Accent); Color("text", "Text", shell.Config.TextColor); Color("muted", "Secondary text", shell.Config.MutedColor); Color("raised", "Controls", shell.Config.RaisedColor); Color("border", "Borders", shell.Config.BorderColor);
@@ -68,10 +68,11 @@ internal sealed class Appearance : Window
     void Apply()
     {
         foreach (var color in colors) if (!System.Text.RegularExpressions.Regex.IsMatch(color.Value.Text, "^#[0-9a-fA-F]{6}$")) { status.Text = "Use six-digit colors such as #8AB4FF."; color.Value.Focus(); return; }
-        var c = shell.Config; c.TopBarHeight = (int)top.Value; c.DockHeight = (int)dock.Value; c.IconSize = (int)size.Value; c.DockRadius = (int)radius.Value; c.DockAlignment = alignment.SelectedItem as string ?? "center";
+        var c = shell.Config; var oldVisibility = c.TopDockItems.ToDictionary(i => i.Id, i => BarLayout.Legacy(c, i.Id)); c.TopBarHeight = (int)top.Value; c.DockHeight = (int)dock.Value; c.IconSize = (int)size.Value; c.DockRadius = (int)radius.Value; c.DockAlignment = alignment.SelectedItem as string ?? "center";
         c.DockHoverThrough = toggles["hover"].IsChecked == true; c.DockFadeOpacity = faded.Value / 100; c.DockInteractionDelay = (int)hold.Value * 1000;
         c.ShowActiveTitle = toggles["title"].IsChecked == true; c.ShowClock = toggles["clock"].IsChecked == true; c.ShowStats = toggles["stats"].IsChecked == true; c.ShowMedia = toggles["media"].IsChecked == true; c.ShowNetwork = toggles["network"].IsChecked == true; c.ShowFilesButton = toggles["files"].IsChecked == true; c.ShowModsButton = toggles["mods"].IsChecked == true;
         c.BackgroundColor = colors["background"].Text; c.PanelColor = colors["panel"].Text; c.Accent = colors["accent"].Text; c.TextColor = colors["text"].Text; c.MutedColor = colors["muted"].Text; c.RaisedColor = colors["raised"].Text; c.BorderColor = colors["border"].Text;
+        foreach (var item in c.TopDockItems.Where(i => !i.Id.StartsWith("divider.") && oldVisibility.GetValueOrDefault(i.Id) != BarLayout.Legacy(c, i.Id))) item.Enabled = BarLayout.Legacy(c, item.Id);
         shell.ApplySettings(true); dock.Value = c.DockHeight; status.Text = "Appearance applied and saved.";
     }
 }

@@ -53,3 +53,12 @@ Release checks record 0.5 native/offline, visual, HTTP and live shell status sep
 Generic label illustrations are replaced by unique demonstrations for every preset. Widget demonstrations render the real controls using isolated sample data. Desktop demonstrations stage the supported operation (placement, stacking, transparency, closing, monitor filtering, labels, independent/system volume, clock formatting, title actions). The native player and public site share the exact 72 media files.
 
 Seven additional checks cover all 72 resource dimensions, calculator output, real unit conversion controls, checklist changes, editor input, distinct behavior scenes, and absence of settings/notification writes. Total: 116 passing native checks. All 36 posters were reviewed together, along with the rendered catalog and showcases. Live mouse playback remains unverified because connected Computer Use is unavailable.
+
+
+## 0.6 Dock and Files
+
+`BarLayout.cs` stores ordered top-Dock items, enabled state, group alignment, lines/spaces, and taskbar divider anchors. Legacy visibility choices migrate once. `TopBar.cs` only rebuilds its layout when its specification changes, defers during its own clicks/drags/menus, and detaches reused label content first. `TopDockControls.cs` provides Buttons/Style/Behavior pages. Disabling reservation or hiding the Dock releases its work area; primary-only mode does not reserve the other monitor. Existing per-monitor game hiding and restoration remain in place.
+
+`Files.cs` now uses `FileTab` state, a virtualized details presenter, paged icon cards and an asynchronous preview pane. File commands preserve the existing clipboard/recycle behavior, support drag/drop, and reject self-transfers or existing destinations. Operation errors remain visible. `ShellUiVerification.cs` adds 23 checks covering migration, reorder/save, profile data, monitor-space choices, tabs, sort/search, file transfers, actual directory loading and text previews. Total: 139 native checks. Visual checks render 27 surfaces, including all Dock control pages, both Files views, and an optimized movie frame.
+
+Previews have 96 frames at 30 FPS, with elapsed-time playback and one active movie. Palette optimization shrinks the film library from about 46 MB to 9 MB. The players stop on focus loss and respect motion preferences. Physical drag interaction and live frame timing remain unverified because the Computer Use connection is unavailable.

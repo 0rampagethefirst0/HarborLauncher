@@ -265,7 +265,7 @@ internal sealed class Mods
             Text("{windows} open windows", 22), Row(Button("Apps", "apps"), Button("Files", "files"), Button("Alerts", "notifications")),
             new WidgetNode { Type = "component", Key = "layouts", Component = "layouts", Text = "Layouts" }, Button("Show desktop", "desktop") } });
         result.AddRange(TweakPackages.All());
-        foreach (var mod in result) { mod.Version = "1.1.0"; ModTaxonomy.Enrich(mod); }
+        foreach (var mod in result) { mod.Version = "1.1.1"; mod.Description = ModCopy.Description(mod.Id) ?? mod.Description; ModTaxonomy.Enrich(mod); }
         return result;
         void Dashboard(string id, string name, string description, WidgetNode layout) => result.Add(new ModDefinition { Format = 2, Id = "harbor." + id, Name = name, Category = "Dashboards", Description = description, Component = "dashboard", Layout = layout, Options = CommonOptions(360) });
         static WidgetNode Text(string text, double size) => new() { Type = "text", Text = text, FontSize = size };

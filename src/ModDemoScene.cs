@@ -14,7 +14,9 @@ namespace Harbor;
 // This scene never launches apps, alters windows, changes volume, or saves fields.
 internal sealed class ModDemoScene
 {
-    internal const int Width = 720, Height = 400, Frames = 24, Columns = 6;
+    internal const int Width = 720, Height = 400, Frames = 96, Columns = 12, FilmWidth = 540, FilmHeight = 300;
+    internal const double FrameMilliseconds = 1000d / 30;
+    readonly string originalId;
     readonly ModDefinition mod;
     readonly WidgetDemoData data = new();
     readonly Widget? widget;
@@ -26,6 +28,7 @@ internal sealed class ModDemoScene
     internal string Renderer => mod.Kind == "theme" ? "shell-palette" : mod.Kind == "widget" ? "native-widget" : mod.Component;
     internal ModDemoScene(Shell shell, ModDefinition source)
     {
+        originalId = source.Id;
         mod = JsonSerializer.Deserialize<ModDefinition>(JsonSerializer.Serialize(source, Mods.Json), Mods.Json)!;
         mod.Id = "preview." + Guid.NewGuid().ToString("N");
         accent = ModBanner.Accent(ModTaxonomy.MainOf(mod));
@@ -46,6 +49,7 @@ internal sealed class ModDemoScene
         if (mod.Kind == "theme") Palette();
         else if (mod.Kind == "widget") WidgetScene();
         else DesktopEffect();
+        Instruction = ModCopy.Caption(originalId) ?? Instruction;
         Text("SAMPLE DATA · PREVIEW", 20, 378, 10, "#8CA2BD");
         Text(Instruction, 20, 350, 15, "#DCE8F8");
     }

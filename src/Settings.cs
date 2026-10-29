@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.Win32;
 
@@ -27,6 +28,27 @@ public sealed class Settings
     public bool Use24HourClock { get; set; }
     public int IconSize { get; set; } = 32;
     public int TopBarHeight { get; set; } = 38;
+    public bool TopDockEnabled { get; set; } = true;
+    public bool TopDockPrimaryOnly { get; set; }
+    public bool TopDockReserveSpace { get; set; } = true;
+    public bool TopDockOnTop { get; set; } = true;
+    public bool TopDockShowBorder { get; set; } = true;
+    public bool TopDockBrandText { get; set; } = true;
+    public bool TopDockSeconds { get; set; }
+    public int TopDockFontSize { get; set; } = 12;
+    public int TopDockIconSize { get; set; } = 16;
+    public int TopDockPadding { get; set; } = 10;
+    public int TopDockGap { get; set; } = 2;
+    public int TopDockRadius { get; set; } = 0;
+    public int TopDockTitleWidth { get; set; } = 260;
+    public double TopDockOpacity { get; set; } = 1;
+    public List<BarItem> TopDockItems { get; set; } = new();
+    public List<TaskbarDivider> TaskbarDividers { get; set; } = new();
+    public int PreviewFramesPerSecond { get; set; } = 30;
+    public string FilesView { get; set; } = "details";
+    public bool FilesPreview { get; set; } = true;
+    public bool FilesShowHidden { get; set; }
+    public List<string> FileFavorites { get; set; } = new();
     public int DockHeight { get; set; } = 80;
     public int DockRadius { get; set; } = 15;
     public string DockAlignment { get; set; } = "center";
@@ -101,6 +123,13 @@ public sealed class Settings
         DockFadeOpacity = double.IsFinite(DockFadeOpacity) ? Math.Clamp(DockFadeOpacity, .2, .8) : .45;
         DockInteractionDelay = Math.Clamp(DockInteractionDelay, 1000, 10000);
         DockMotionMilliseconds = Math.Clamp(DockMotionMilliseconds, 0, 350);
+        TopDockFontSize = Math.Clamp(TopDockFontSize, 10, 18); TopDockIconSize = Math.Clamp(TopDockIconSize, 12, 26);
+        TopDockPadding = Math.Clamp(TopDockPadding, 3, 20); TopDockGap = Math.Clamp(TopDockGap, 0, 18); TopDockRadius = Math.Clamp(TopDockRadius, 0, 28); TopDockTitleWidth = Math.Clamp(TopDockTitleWidth, 80, 520);
+        TopDockOpacity = double.IsFinite(TopDockOpacity) ? Math.Clamp(TopDockOpacity, .5, 1) : 1;
+        PreviewFramesPerSecond = Math.Clamp(PreviewFramesPerSecond, 12, 30);
+        if (FilesView is not "details" and not "grid") FilesView = "details";
+        FileFavorites ??= new(); FileFavorites = FileFavorites.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase).Take(40).ToList();
+        BarLayout.Normalize(this);
     }
 
     public static bool StartupEnabled

@@ -251,7 +251,8 @@ internal sealed class Shell : IDisposable
         foreach (var screen in Forms.Screen.AllScreens)
         {
             var monitor = Native.MonitorFromPoint(new Native.Point { X = screen.Bounds.Left + 1, Y = screen.Bounds.Top + 1 }, 2);
-            Recovery.UpdateWorkArea(monitor, HideBars(monitor), Config.AllMonitors || screen.Primary, Config.TopBarHeight, DockInteraction.Enabled ? 0 : Config.DockHeight);
+            int top = BarLayout.ReservedTop(Config, screen.Primary);
+            Recovery.UpdateWorkArea(monitor, HideBars(monitor), Config.AllMonitors || screen.Primary, top, DockInteraction.Enabled ? 0 : Config.DockHeight);
         }
     }
     void UpdateGame()
@@ -319,6 +320,12 @@ internal sealed class Shell : IDisposable
     internal void OpenArrange(IntPtr monitor) => OpenFlyout(() => new ArrangePanel(this, monitor));
     internal void OpenNotifications(IntPtr monitor) => OpenFlyout(() => new NotificationPanel(this, monitor));
     internal void OpenDockControls(IntPtr monitor, Native.Rect bounds) => OpenFlyout(() => new DockControls(this, monitor, bounds));
+    internal void OpenTopDockControls(IntPtr monitor) => OpenFlyout(() => new TopDockControls(this, monitor));
+    internal void ApplyTopDockPreferences()
+    {
+        Config.Normalize(); foreach (var bar in bars) bar.Tick();
+        if (Recovery != null) { UpdateGame(); UpdateWorkAreas(); foreach (var dock in docks) dock.Tick(); WindowSpace.Tick(); }
+    }
     internal void OpenDockControls()
     {
         var monitor = CurrentMonitor(); var dock = docks.FirstOrDefault(d => d.MonitorHandle == monitor);
@@ -425,6 +432,7 @@ internal sealed class Shell : IDisposable
             case "appearance": OpenAppearance(); return "ok";
             case "profiles": OpenProfiles(); return "ok";
             case "dock-controls": OpenDockControls(); return "ok";
+            case "top-dock-controls": OpenTopDockControls(CurrentMonitor()); return "ok";
             case "files": OpenFiles(); return "ok";
             case "notifications": OpenNotifications(CurrentMonitor()); return "ok";
             case "refresh-notifications": Notifications.Poll(true); return "ok";

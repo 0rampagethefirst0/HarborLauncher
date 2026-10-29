@@ -17,9 +17,9 @@ internal sealed class DockControls : Window
     bool dirty;
     internal DockControls(Shell shell, IntPtr monitor, Native.Rect dockBounds)
     {
-        this.shell = shell; Title = "Harbor — dock controls"; Theme.PopupWindow(this, 370, 392, monitor, true);
+        this.shell = shell; Title = "Harbor — taskbar controls"; Theme.PopupWindow(this, 370, 430, monitor, true);
         var body = new StackPanel { Margin = new Thickness(20, 17, 20, 17) };
-        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14) }; var close = Theme.IconButton("\uE8BB", "Close dock controls", Close); close.Padding = new Thickness(5); DockPanel.SetDock(close, System.Windows.Controls.Dock.Right); header.Children.Add(close); header.Children.Add(new TextBlock { Text = "Dock controls", FontSize = 21, FontWeight = FontWeights.SemiBold }); body.Children.Add(header);
+        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14) }; var close = Theme.IconButton("\uE8BB", "Close dock controls", Close); close.Padding = new Thickness(5); DockPanel.SetDock(close, System.Windows.Controls.Dock.Right); header.Children.Add(close); header.Children.Add(new TextBlock { Text = "Taskbar controls", FontSize = 21, FontWeight = FontWeights.SemiBold }); body.Children.Add(header);
         Toggle("Click-through on hover", shell.Config.DockHoverThrough, value => shell.Config.DockHoverThrough = value);
         Toggle("Stay faded while typing", shell.Config.DockQuietWhileTyping, value => shell.Config.DockQuietWhileTyping = value);
         Slider("Faded opacity", 20, 80, shell.Config.DockFadeOpacity * 100, "%", value => shell.Config.DockFadeOpacity = value / 100);

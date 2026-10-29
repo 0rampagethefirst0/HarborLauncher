@@ -144,14 +144,16 @@ internal sealed class SettingsWindow : Window
         Check("Show Harbor on every monitor", shell.Config.AllMonitors, v => { shell.Config.AllMonitors = v; shell.ApplySettings(true); });
         Check("Hide bars during fullscreen games and videos", shell.Config.HideInFullscreen, v => { shell.Config.HideInFullscreen = v; shell.ApplySettings(); });
         Check("Hide Harbor while playing games, including windowed games", shell.Config.HideInGames, v => { shell.Config.HideInGames = v; shell.ApplySettings(); });
-        Note("Hidden bars give their screen space back. Right-click a running dock app and choose Treat as game to adjust detection.");
+        Note("Hidden bars give their screen space back. Right-click a running taskbar app and choose Treat as game to adjust detection.");
         Check("Start Harbor when I sign in", Settings.StartupEnabled, v => Settings.StartupEnabled = v);
         Heading("Appearance");
+        var dockControls = Theme.Button("Dock controls and button layout", "Customize the top Dock", () => shell.OpenTopDockControls(shell.CurrentMonitor())); dockControls.Background = Theme.Raised; dockControls.HorizontalAlignment = HorizontalAlignment.Left; body.Children.Add(dockControls);
+        Check("Show the top Dock", shell.Config.TopDockEnabled, v => { shell.Config.TopDockEnabled = v; shell.Config.Save(); shell.ApplyTopDockPreferences(); });
         var appearance = Theme.Button("Customize colors, bars, and layout", "Open appearance settings", shell.OpenAppearance); appearance.Background = Theme.Raised; appearance.HorizontalAlignment = HorizontalAlignment.Left; body.Children.Add(appearance);
-        Check("Show CPU and memory usage", shell.Config.ShowStats, v => { shell.Config.ShowStats = v; shell.ApplySettings(); });
+        Check("Show CPU and memory usage", shell.Config.ShowStats, v => { shell.Config.ShowStats = v; if (shell.Config.TopDockItems.FirstOrDefault(i => i.Id == "stats") is { } item) BarLayout.Enable(shell.Config, item, v); shell.ApplySettings(); });
         Check("Use a 24-hour clock", shell.Config.Use24HourClock, v => { shell.Config.Use24HourClock = v; shell.ApplySettings(); });
         var sizeRow = new DockPanel { Margin = new Thickness(0, 10, 0, 10) };
-        var sizeLabel = Theme.Label("Dock icon size", 14); sizeLabel.Width = 150; sizeRow.Children.Add(sizeLabel);
+        var sizeLabel = Theme.Label("Taskbar icon size", 14); sizeLabel.Width = 150; sizeRow.Children.Add(sizeLabel);
         var sizes = new StackPanel { Orientation = Orientation.Horizontal };
         var sizeButtons = new List<Button>();
         int selectedSize = shell.Config.IconSize <= 26 ? 0 : shell.Config.IconSize <= 34 ? 1 : 2;
@@ -172,7 +174,7 @@ internal sealed class SettingsWindow : Window
         Check("Automatically arrange new windows in a grid", shell.Config.AutoTile, v => { shell.Config.AutoTile = v; shell.ApplySettings(); if (v) shell.Arrange(shell.CurrentMonitor(), "grid"); });
         Note("You can also arrange windows from the dock. Undo restores their previous positions.");
         Heading("Shortcuts");
-        Note("Windows key, Ctrl + Esc, or Ctrl + Alt + Space    Open apps\nCtrl + Alt + F12    Exit Harbor and restore Windows\nRight-click an app    Pin, move, switch, or close\nDrop an app shortcut onto the dock    Pin it");
+        Note("Windows key, Ctrl + Esc, or Ctrl + Alt + Space    Open apps\nCtrl + Alt + F12    Exit Harbor and restore Windows\nRight-click an app    Pin, move, switch, or close\nDrop an app shortcut onto the taskbar    Pin it");
         var scroller = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }; Grid.SetRow(scroller, 1); root.Children.Add(scroller);
         var footer = new Grid { Margin = new Thickness(0, 20, 0, 0) }; footer.ColumnDefinitions.Add(new ColumnDefinition()); footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var status = new StackPanel(); status.Children.Add(Theme.Label("Harbor " + Program.Version + " · Software rendering", 12, Theme.Muted)); status.Children.Add(Theme.Label("Changes save automatically", 11, Theme.Muted)); footer.Children.Add(status);

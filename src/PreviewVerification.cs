@@ -20,11 +20,11 @@ internal static class PreviewVerification
                 if (resource == null) continue;
                 using (resource.Stream) {
                     var decoder = BitmapDecoder.Create(resource.Stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None); var frame = decoder.Frames[0];
-                    bool valid = suffix == ".png" ? frame.PixelWidth == ModDemoScene.Width && frame.PixelHeight == ModDemoScene.Height : frame.PixelWidth == ModDemoScene.Width * ModDemoScene.Columns && frame.PixelHeight == ModDemoScene.Height * (ModDemoScene.Frames / ModDemoScene.Columns);
+                    bool valid = suffix == ".png" ? frame.PixelWidth == ModDemoScene.Width && frame.PixelHeight == ModDemoScene.Height : frame.PixelWidth == ModDemoScene.FilmWidth * ModDemoScene.Columns && frame.PixelHeight == ModDemoScene.FilmHeight * (ModDemoScene.Frames / ModDemoScene.Columns);
                     if (valid) count++;
                 }
             }
-        check("All 36 presets ship a correctly sized poster and 24-frame demonstration", count == 72, new { Assets = count });
+        check("All 36 presets ship a correctly sized poster and 30 FPS demonstration", count == 72, new { Assets = count, Frames = ModDemoScene.Frames });
         string before = File.ReadAllText(Path.Combine(Settings.DataDir, "settings.json")); int notices = shell.Notifications.Items.Count;
         ModDemoScene Scene(string component) => new(shell, mods.First(m => m.Component == component));
         var calculator = Scene("calculator"); calculator.Draw(.72); ModDemoRecorder.Snapshot(calculator.View);

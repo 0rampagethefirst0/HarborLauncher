@@ -14,7 +14,7 @@ namespace Harbor;
 
 internal static class Program
 {
-    internal static string Version => typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.5.1";
+    internal static string Version => typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.6.0";
     static string PipeName => "Harbor.Desktop." + Environment.UserName;
     static Shell? shell;
     [STAThread]
@@ -25,6 +25,8 @@ internal static class Program
         Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null);
         if (args.Length >= 2 && args[0] == "--verify") { RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly; Verification.Run(args[1]); return; }
         if (args.Length >= 2 && args[0] == "--render-demos") { RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly; ModDemoRecorder.Record(args[1]); return; }
+        if (args.Length >= 2 && args[0] == "--export-catalog") { ModDemoRecorder.ExportCatalog(args[1]); return; }
+        if (args.Length >= 3 && args[0] == "--optimize-demos") { ModDemoRecorder.Optimize(args[1], args[2]); return; }
         if (args.Length >= 2 && args[0] == "--probe-shell") { Diagnostics.Probe(args[1]); return; }
         if (args.Length >= 3 && args[0] == "--watchdog") { Recovery.Watch(int.Parse(args[1]), long.Parse(args[2])); return; }
         if (args.Length >= 2 && args[0] == "--diagnose") { RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly; Diagnostics.Run(args[1]); return; }
@@ -39,7 +41,7 @@ internal static class Program
             Recovery.ForceRestore();
             return;
         }
-        var command = args.FirstOrDefault(a => a is "--launcher" or "--settings" or "--quit" or "--status" or "--quick" or "--calendar" or "--arrange" or "--mods" or "--files" or "--notifications" or "--desktop" or "--appearance" or "--profiles" or "--dock-controls");
+        var command = args.FirstOrDefault(a => a is "--launcher" or "--settings" or "--quit" or "--status" or "--quick" or "--calendar" or "--arrange" or "--mods" or "--files" or "--notifications" or "--desktop" or "--appearance" or "--profiles" or "--dock-controls" or "--top-dock-controls");
         if (command != null)
         {
             string result = Send(command == "--quit" ? "exit" : command[2..]);

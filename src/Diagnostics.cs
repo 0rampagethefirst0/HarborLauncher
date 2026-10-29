@@ -43,21 +43,24 @@ internal static class Diagnostics
                 var mods = new ModCatalog(model); Save(mods, "mods"); mods.Close();
                 foreach (string category in ModTaxonomy.Main) { var showcase = new ModCatalog(model); showcase.PreparePreview("category:" + category); Save(showcase, "category-" + category.ToLowerInvariant()); showcase.Close(); }
                 var catalog = new ModCatalog(model); catalog.PreparePreview("catalog:Tools"); Save(catalog, "catalog-tools"); catalog.Close();
+                var movie = new ModBanner(model.Mods.Catalog.First(m => m.Id == "harbor.window-opacity"), model, 400); movie.PreparePreviewFrame(70); var filmWindow = new Window { Width = 720, Height = 400, Content = movie }; Save(filmWindow, "preview-frame"); filmWindow.Close();
                 var creator = new ModCreator(model); Save(creator, "plugin-creator"); creator.Close();
                 var behaviors = new ModCatalog(model); behaviors.PreparePreview("Behavior mods"); Save(behaviors, "behavior-mods"); behaviors.Close();
                 var profiles = new ProfileWindow(model); Save(profiles, "profiles"); profiles.Close();
                 var monitorBounds = Native.Monitor(monitor).Monitor; var dockControls = new DockControls(model, monitor, monitorBounds); Save(dockControls, "dock-controls"); dockControls.Close();
+                foreach (string page in new[] { "Buttons", "Style", "Behavior" }) { var topControls = new TopDockControls(model, monitor); topControls.PreparePreview(page); Save(topControls, "top-dock-" + page.ToLowerInvariant()); topControls.Close(); }
+                var topBar = new TopBar(model, monitor); topBar.Width = 1240; topBar.PreparePreview(); Save(topBar, "top-dock"); topBar.Close();
                 var menuDock = new Dock(model, monitor); var dockMenu = menuDock.ContextMenu!; dockMenu.Visibility = Visibility.Visible; dockMenu.ApplyTemplate();
                 dockMenu.Measure(new Size(248, 190)); dockMenu.Arrange(new Rect(0, 0, 248, 190)); dockMenu.UpdateLayout();
                 var menuTarget = new RenderTargetBitmap(248, 190, 96, 96, PixelFormats.Pbgra32); menuTarget.Render(dockMenu); var menuEncoder = new PngBitmapEncoder(); menuEncoder.Frames.Add(BitmapFrame.Create(menuTarget)); using (var menuFile = File.Create(Path.Combine(directory, "dock-menu.png"))) menuEncoder.Save(menuFile); menuDock.Close();
-                string sample = Path.Combine(directory, "sample-files"); Directory.CreateDirectory(Path.Combine(sample, "Projects")); File.WriteAllText(Path.Combine(sample, "Welcome.txt"), "Harbor Files");
-                var files = new Files(model, sample); await Task.Delay(250); Save(files, "files"); files.Close();
+                string sample = Path.Combine(directory, "sample-files"); Directory.CreateDirectory(Path.Combine(sample, "Projects")); Directory.CreateDirectory(Path.Combine(sample, "Designs")); File.WriteAllText(Path.Combine(sample, "Welcome.txt"), "Welcome to Harbor Files.\n\nUse tabs to keep folders open.\nSwitch between a grid and details.\nPreview images and text here.\nPin folders you use often."); File.WriteAllText(Path.Combine(sample, "palette.json"), "{\n  \"accent\": \"#83DFD0\",\n  \"theme\": \"Midnight\"\n}"); File.WriteAllText(Path.Combine(sample, "Notes.md"), "# Ideas\nA desktop that works your way.");
+                var files = new Files(model, sample); await files.NavigateAsync(sample, false); files.PreparePreview("Welcome.txt"); await Task.Delay(100); Save(files, "files"); string oldView = model.Config.FilesView; files.PrepareGridPreview(); Save(files, "files-grid"); model.Config.FilesView = oldView; files.Close();
                 var desktop = new Desktop(model, monitor, true); Save(desktop, "desktop"); desktop.Close();
                 var appearance = new Appearance(model); Save(appearance, "appearance"); appearance.Close();
                 var dashboard = model.Mods.Catalog.First(m => m.Component == "dashboard"); var designer = new ModDesigner(model, dashboard); Save(designer, "builder"); designer.Close();
                 var card = new Widget(model, model.Mods.Catalog.First(m => m.Id == "harbor.resource-desk"), true); card.View.Measure(new Size(360, double.PositiveInfinity)); card.View.Arrange(new Rect(0, 0, 360, card.View.DesiredSize.Height));
                 var dashboardWindow = new Window { Width = 380, Height = Math.Max(300, card.View.DesiredSize.Height + 24), Content = new Border { Background = Theme.Bg, Padding = new Thickness(10), Child = card.View } }; Save(dashboardWindow, "dashboard"); dashboardWindow.Close();
-                File.WriteAllText(Path.Combine(directory, "visual-check.json"), JsonSerializer.Serialize(new { RenderMode = RenderOptions.ProcessRenderMode.ToString(), model.Catalog.Apps.Count, ModCount = model.Mods.Catalog.Count, Images = 21, DesktopChanged = false }));
+                File.WriteAllText(Path.Combine(directory, "visual-check.json"), JsonSerializer.Serialize(new { RenderMode = RenderOptions.ProcessRenderMode.ToString(), model.Catalog.Apps.Count, ModCount = model.Mods.Catalog.Count, Images = 27, DesktopChanged = false }));
                 app.Shutdown();
             }
             catch (Exception ex) { File.WriteAllText(Path.Combine(directory, "error.txt"), ex.ToString()); app.Shutdown(1); }
