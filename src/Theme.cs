@@ -68,6 +68,7 @@ internal static class Theme
         var b = new Button { Content = content, ToolTip = name };
         AutomationProperties.SetName(b, name);
         b.Click += (_, _) => click();
+        Motion.Hover(b);
         return b;
     }
     internal static Button IconButton(string glyph, string name, Action click) => Button(Glyph(glyph), name, click);

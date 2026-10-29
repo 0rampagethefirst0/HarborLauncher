@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,13 +37,17 @@ internal static class CatalogMotion
 internal sealed class ModBanner : Border
 {
     static ModBanner? playing;
+    static readonly SemaphoreSlim decoding = new(1);
     readonly Image image = new() { Stretch = Stretch.Uniform };
     readonly Settings config;
     readonly ModDefinition mod;
     readonly bool autoplay;
-    readonly DispatcherTimer clock = new() { Interval = TimeSpan.FromMilliseconds(ModDemoScene.FrameMilliseconds) };
     readonly Stopwatch playback = new();
-    readonly TextBlock playLabel = Theme.Label("Hover to play", 10, Theme.Brush("#E5EFFD"));
+    bool subscribed;
+    bool loading;
+    int loadVersion;
+    long drawBucket = -1;
+    readonly TextBlock playLabel = Theme.Label("Hover to play", 12, Theme.Brush("#E5EFFD"));
     BitmapSource? poster, film;
     Window? owner;
     int frame;
@@ -69,25 +75,34 @@ internal sealed class ModBanner : Border
         {
             var badge = new Border { Background = Theme.Brush("#DB172433"), CornerRadius = new CornerRadius(4), Padding = new Thickness(6, 3, 6, 3), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6), Child = playLabel, IsHitTestVisible = false }; root.Children.Add(badge);
         }
-        clock.Tick += (_, _) => {
-            if (!IsVisible || owner?.IsActive != true || config.DockMotionMilliseconds == 0) { Stop(); return; }
-            clock.Interval = TimeSpan.FromMilliseconds(1000d / config.PreviewFramesPerSecond);
-            int current = (int)(playback.Elapsed.TotalMilliseconds / ModDemoScene.FrameMilliseconds);
-            if (current >= ModDemoScene.Frames + 30) { if (!autoplay) { Stop(); return; } playback.Restart(); current = 0; }
-            current = Math.Min(current, ModDemoScene.Frames - 1); if (current != frame) { frame = current; SetFrame(frame); }
-        };
         MouseEnter += (_, _) => Start(); MouseLeave += (_, _) => { if (!autoplay) Stop(); };
         Loaded += (_, _) => { owner = Window.GetWindow(this); if (owner != null) { owner.Activated += Active; owner.Deactivated += Inactive; } if (autoplay) Start(); };
         Unloaded += (_, _) => { Stop(); if (owner != null) { owner.Activated -= Active; owner.Deactivated -= Inactive; owner = null; } };
     }
     void Active(object? sender, EventArgs e) { if (autoplay || IsMouseOver) Start(); }
     void Inactive(object? sender, EventArgs e) => Stop();
-    void Start()
+    async void Start()
     {
         if (custom || config.DockMotionMilliseconds == 0 || owner?.IsActive != true || !IsVisible) return;
-        if (clock.IsEnabled) return;
-        playing?.Stop(); film = Load(mod.Id + "-film.png"); if (film == null) return;
-        playing = this; frame = 0; playLabel.Text = "Preview playing"; SetFrame(0); playback.Restart(); clock.Interval = TimeSpan.FromMilliseconds(1000d / config.PreviewFramesPerSecond); clock.Start();
+        if (subscribed || loading) return;
+        playing?.Stop(); playing = this; loading = true; int version = Interlocked.Increment(ref loadVersion); playLabel.Text = "Loading preview...";
+        BitmapSource? loaded;
+        try { await decoding.WaitAsync(); try { if (version != Volatile.Read(ref loadVersion)) return; loaded = await DecodeFilmAsync(mod.Id); } finally { decoding.Release(); } }
+        catch (Exception ex) { Log.Write("Preview decode: " + ex.Message); if (version == loadVersion) Stop(); return; }
+        finally { if (version == loadVersion) loading = false; }
+        if (version != loadVersion) return;
+        if (loaded == null || !IsVisible || owner?.IsActive != true || config.DockMotionMilliseconds == 0) { Stop(); return; }
+        film = loaded;
+        playing = this; frame = 0; drawBucket = -1; playLabel.Text = config.PreviewFramesPerSecond + " FPS preview"; SetFrame(0); playback.Restart(); CompositionTarget.Rendering += RenderFrame; subscribed = true;
+    }
+    void RenderFrame(object? sender, EventArgs args)
+    {
+        if (!IsVisible || owner?.IsActive != true || config.DockMotionMilliseconds == 0) { Stop(); return; }
+        double milliseconds = playback.Elapsed.TotalMilliseconds; int current = (int)(milliseconds / ModDemoScene.FrameMilliseconds);
+        if (current >= ModDemoScene.Frames + 60) { if (!autoplay) { Stop(); return; } playback.Restart(); current = 0; drawBucket = -1; milliseconds = 0; }
+        long bucket = (long)(milliseconds * config.PreviewFramesPerSecond / 1000); if (bucket == drawBucket) return; drawBucket = bucket;
+        current = Math.Min(current, ModDemoScene.Frames - 1);
+        if (current != frame) { frame = current; SetFrame(frame); }
     }
     void SetFrame(int index)
     {
@@ -95,7 +110,8 @@ internal sealed class ModBanner : Border
         var crop = new CroppedBitmap(film, new Int32Rect(index % ModDemoScene.Columns * ModDemoScene.FilmWidth, index / ModDemoScene.Columns * ModDemoScene.FilmHeight, ModDemoScene.FilmWidth, ModDemoScene.FilmHeight)); crop.Freeze(); image.Source = crop;
     }
     internal void PreparePreviewFrame(int index) { film = Load(mod.Id + "-film.png"); SetFrame(Math.Clamp(index, 0, ModDemoScene.Frames - 1)); }
-    void Stop() { clock.Stop(); playback.Stop(); image.Source = poster; film = null; playLabel.Text = "Hover to play"; if (ReferenceEquals(playing, this)) playing = null; }
+    internal static Task<BitmapSource?> DecodeFilmAsync(string id) => Task.Run(() => Load(id + "-film.png"));
+    void Stop() { Interlocked.Increment(ref loadVersion); loading = false; if (subscribed) CompositionTarget.Rendering -= RenderFrame; subscribed = false; playback.Stop(); image.Source = poster; film = null; playLabel.Text = "Hover to play"; if (ReferenceEquals(playing, this)) playing = null; }
     static BitmapSource? Load(string name)
     {
         try { var info = Application.GetResourceStream(new Uri("pack://application:,,,/Harbor;component/Previews/" + name)); if (info == null) return null; using (info.Stream) return Decode(info.Stream, false); } catch (IOException) { return null; }

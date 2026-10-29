@@ -24,6 +24,8 @@ internal sealed class ModCreator : Window
     readonly TextBlock status = Theme.Label("", 12, Theme.Muted), imageStatus = Theme.Label("Native animated preview", 12, Theme.Muted);
     readonly HashSet<string> tags = new(StringComparer.OrdinalIgnoreCase);
     string image = "";
+    string guideTemplate = "";
+    readonly TextBox instructions = new() { AcceptsReturn = true, MinHeight = 130, TextWrapping = TextWrapping.Wrap, MaxLength = 8000 };
     ModDefinition? created;
     internal ModCreator(Shell shell, ModDefinition? original = null, bool upload = false, Action<ModDefinition>? saved = null)
     {
@@ -48,6 +50,8 @@ internal sealed class ModCreator : Window
         Label(panel, "Creator"); author.MaxLength = 120; author.Text = original?.Id.StartsWith("local.") == true ? original.Author : "Local"; panel.Children.Add(author);
         Label(panel, "Version · increase this for published updates"); if (original?.Id.StartsWith("local.") == true) version.Text = original.Version; panel.Children.Add(version);
         Label(panel, "Description"); description.Text = original?.Description ?? ""; panel.Children.Add(description);
+        Label(panel, "How to use · one step per line"); var guideSource = (ModDefinition)template.SelectedItem; instructions.Text = original?.Instructions ?? (string.IsNullOrWhiteSpace(guideSource.Instructions) ? ModHelp.Build(guideSource) : guideSource.Instructions); panel.Children.Add(instructions); AutomationProperties.SetName(instructions, "Plugin usage instructions");
+        guideTemplate = instructions.Text;
         var categories = new Grid(); categories.ColumnDefinitions.Add(new ColumnDefinition()); categories.ColumnDefinitions.Add(new ColumnDefinition());
         var mainCol = new StackPanel { Margin = new Thickness(0, 0, 12, 0) }; Label(mainCol, "Main category · required"); mainCol.Children.Add(main); categories.Children.Add(mainCol);
         var subCol = new StackPanel(); Label(subCol, "Subcategory · required"); subCol.Children.Add(sub); Grid.SetColumn(subCol, 1); categories.Children.Add(subCol); panel.Children.Add(categories);
@@ -55,7 +59,7 @@ internal sealed class ModCreator : Window
         var starter = (ModDefinition)template.SelectedItem; main.SelectedItem = ModTaxonomy.MainOf(starter); sub.SelectedItem = ModTaxonomy.SubOf(starter);
         if (original == null && upload && starter.Id.StartsWith("local.")) { name.Text = starter.Name; author.Text = starter.Author; version.Text = starter.Version; description.Text = starter.Description; foreach (string tag in starter.Tags) tags.Add(tag); }
         image = original?.PreviewImage ?? (upload && starter.Id.StartsWith("local.") ? starter.PreviewImage : ""); if (image.Length > 0) imageStatus.Text = "Custom banner attached";
-        template.SelectionChanged += (_, _) => { if (template.SelectedItem is ModDefinition choice) { main.SelectedItem = ModTaxonomy.MainOf(choice); sub.SelectedItem = ModTaxonomy.SubOf(choice); } };
+        template.SelectionChanged += (_, _) => { if (template.SelectedItem is ModDefinition choice) { main.SelectedItem = ModTaxonomy.MainOf(choice); sub.SelectedItem = ModTaxonomy.SubOf(choice); if (instructions.Text == guideTemplate || string.IsNullOrWhiteSpace(instructions.Text)) { guideTemplate = string.IsNullOrWhiteSpace(choice.Instructions) ? ModHelp.Build(choice) : choice.Instructions; instructions.Text = guideTemplate; } } };
         Label(panel, "Banner"); var bannerActions = new WrapPanel(); bannerActions.Children.Add(Theme.Button("Choose image", "Choose a PNG or JPEG banner", PickImage)); bannerActions.Children.Add(Theme.Button("Use native preview", "Use the animated native preview", () => { image = ""; imageStatus.Text = "Native animated preview"; })); imageStatus.Margin = new Thickness(10, 0, 0, 0); bannerActions.Children.Add(imageStatus); panel.Children.Add(bannerActions);
         Label(panel, "Tags · optional", 17); Label(panel, "Pick up to 30. Your main category decides where the plugin lives; tags help people find it.", 12, true);
         if (original != null) foreach (string tag in original.Tags) tags.Add(tag);
@@ -76,7 +80,7 @@ internal sealed class ModCreator : Window
         if (string.IsNullOrWhiteSpace(name.Text) || string.IsNullOrWhiteSpace(author.Text) || main.SelectedItem is not string category || sub.SelectedItem is not string child) throw new InvalidOperationException("Add a name, creator, main category and subcategory.");
         var chosenTags = tags.Concat(extraTags.Text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (chosenTags.Count > 30) throw new InvalidOperationException("Choose up to 30 tags.");
-        var candidate = Mods.Read(JsonSerializer.Serialize(source, Mods.Json)); candidate.Name = name.Text.Trim(); candidate.Author = author.Text.Trim(); candidate.Version = version.Text.Trim(); candidate.Description = description.Text.Trim(); candidate.MainCategory = category; candidate.Subcategory = child; candidate.Tags = chosenTags; candidate.PreviewImage = image;
+        var candidate = Mods.Read(JsonSerializer.Serialize(source, Mods.Json)); candidate.Name = name.Text.Trim(); candidate.Author = author.Text.Trim(); candidate.Version = version.Text.Trim(); candidate.Description = description.Text.Trim(); candidate.Instructions = instructions.Text.Trim(); candidate.MainCategory = category; candidate.Subcategory = child; candidate.Tags = chosenTags; candidate.PreviewImage = image;
         foreach (var option in candidate.Options) option.Default = shell.Mods.Value(source, option.Key);
         Mods.Validate(candidate);
         if (created == null && original?.Id.StartsWith("local.") == true && source.Id == original.Id) created = original;

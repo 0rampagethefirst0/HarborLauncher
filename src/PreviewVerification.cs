@@ -24,7 +24,7 @@ internal static class PreviewVerification
                     if (valid) count++;
                 }
             }
-        check("All 36 presets ship a correctly sized poster and 30 FPS demonstration", count == 72, new { Assets = count, Frames = ModDemoScene.Frames });
+        check("All 36 presets ship a correctly sized poster and 60 FPS demonstration", count == 72, new { Assets = count, Frames = ModDemoScene.Frames });
         string before = File.ReadAllText(Path.Combine(Settings.DataDir, "settings.json")); int notices = shell.Notifications.Items.Count;
         ModDemoScene Scene(string component) => new(shell, mods.First(m => m.Component == component));
         var calculator = Scene("calculator"); calculator.Draw(.72); ModDemoRecorder.Snapshot(calculator.View);

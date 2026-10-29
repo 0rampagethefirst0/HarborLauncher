@@ -1,6 +1,11 @@
-# Harbor 0.7.0
+# Harbor 0.8.0
 
 A native Windows shell with a desktop, top Dock, app taskbar, Apps screen, file manager, notification center, settings, and native mods. Run **App\Harbor.exe** or the Harbor shortcut. Requires .NET 9 Windows Desktop Runtime x64.
+
+Version 0.8 improves readability and motion. Taskbar folders have larger app covers, visible names, and a right-click **Folder icon size** menu. Files opens on a new Home page with quick places, app collections, recent folders and drive storage. File actions have text labels; cards have larger names, colored folders, useful type/size details and image thumbnails. Use the **Size** slider or **Ctrl + mouse wheel** to resize cards and names. Details view uses larger rows and adjustable columns. The preview pane shows folder information when nothing is selected.
+
+Every preset has a specific **How to use** guide and clearer setting hints. The creator can include its own usage steps, and **Larger preview** opens an enlarged demonstration. Native and web previews share 192-frame clips recorded at **60 FPS**; the native player follows rendering frames and decodes films in the background. Common buttons, file navigation, scrolling and icon rearrangement use bounded easing animations. Animation frame target and preview rate are configurable under Dock controls. Motion zero disables the new motion paths.
+
 
 
 The top **Dock** accepts drops across its whole width, including empty space and either side of an icon. Date and Time are independent pieces: drag Play between them. Right-click a piece to edit, duplicate, hide, or move it; use **Dock controls > + Piece** to add custom text, more clocks/time zones, app shortcuts, CPU/memory readings, or media controls. Each piece can have its own width and text size. Text supports `{date}`, `{time}`, `{cpu}`, `{ram}`, and `{title}`. Drag dividers and spaces as well.

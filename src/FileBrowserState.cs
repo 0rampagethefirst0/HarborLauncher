@@ -16,7 +16,7 @@ internal sealed class FileTab
     internal string Name => Label ?? (Path.GetFileName(Folder.TrimEnd(Path.DirectorySeparatorChar)) is string name && name.Length > 0 ? name : Folder);
     internal void Visit(string path, bool history)
     {
-        if (!TaskbarFolders.IsFolder(path)) path = Path.GetFullPath(path);
+        if (!TaskbarFolders.IsFolder(path) && path != Files.HomePath) path = Path.GetFullPath(path);
         if (history && Folder.Length > 0 && !Folder.Equals(path, StringComparison.OrdinalIgnoreCase)) { Back.Push(Folder); Forward.Clear(); }
         Folder = path;
     }

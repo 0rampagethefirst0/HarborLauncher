@@ -34,6 +34,7 @@ public sealed class ModDefinition
     public string PreviewImage { get; set; } = "";
     public string PreviewAccent { get; set; } = "";
     public string Description { get; set; } = "";
+    public string Instructions { get; set; } = "";
     public string Kind { get; set; } = "widget";
     public string Component { get; set; } = "";
     public List<ModOption> Options { get; set; } = new();
@@ -214,7 +215,7 @@ internal sealed class Mods
         if (mod == null || mod.Name == null || mod.Description == null || mod.Author == null || mod.Category == null || mod.Component == null || mod.Kind == null || mod.Author.Length > 120 || mod.Category.Length > 100) throw new InvalidDataException("Invalid mod metadata.");
         ModTaxonomy.Validate(mod);
         if (mod.Format is < 1 or > 3 || mod.Id == null || !Regex.IsMatch(mod.Id, @"^[a-z0-9][a-z0-9._-]{1,79}$")) throw new InvalidDataException("Invalid mod ID or package format.");
-        if (string.IsNullOrWhiteSpace(mod.Name) || mod.Name.Length > 120 || mod.Description.Length > 8000 || !System.Version.TryParse(mod.Version, out _)) throw new InvalidDataException("Invalid mod metadata.");
+        if (string.IsNullOrWhiteSpace(mod.Name) || mod.Name.Length > 120 || mod.Description.Length > 8000 || mod.Instructions == null || mod.Instructions.Length > 8000 || !System.Version.TryParse(mod.Version, out _)) throw new InvalidDataException("Invalid mod metadata.");
         if (mod.Kind != "theme" && !(mod.Kind == "widget" && Components.Contains(mod.Component)) && !(mod.Kind == "tweak" && mod.Format == 3 && Tweaks.Components.Contains(mod.Component))) throw new InvalidDataException("This mod needs a component that Harbor does not support yet.");
         if (!System.Version.TryParse(mod.MinimumHarborVersion, out _) || mod.Tags == null || mod.Tags.Count > 30 || mod.Tags.Any(t => t == null || t.Length > 60) || mod.Dependencies == null || mod.Dependencies.Count > 30 || mod.Dependencies.Any(d => d == null || d.Id == null || !Regex.IsMatch(d.Id, @"^[a-z0-9][a-z0-9._-]{1,79}$") || !System.Version.TryParse(d.MinimumVersion, out _)) || mod.Conflicts == null || mod.Conflicts.Count > 100 || mod.Conflicts.Any(id => id == null || !Regex.IsMatch(id, @"^[a-z0-9][a-z0-9._-]{1,79}$"))) throw new InvalidDataException("Invalid compatibility or dependency metadata.");
         if (mod.Component == "dashboard") { if (mod.Format < 2 || mod.Layout == null) throw new InvalidDataException("Custom widget layouts require format 2 and a layout."); WidgetLayout.Validate(mod.Layout); }
@@ -265,7 +266,7 @@ internal sealed class Mods
             Text("{windows} open windows", 22), Row(Button("Apps", "apps"), Button("Files", "files"), Button("Alerts", "notifications")),
             new WidgetNode { Type = "component", Key = "layouts", Component = "layouts", Text = "Layouts" }, Button("Show desktop", "desktop") } });
         result.AddRange(TweakPackages.All());
-        foreach (var mod in result) { mod.Version = "1.1.1"; mod.Description = ModCopy.Description(mod.Id) ?? mod.Description; ModTaxonomy.Enrich(mod); }
+        foreach (var mod in result) { mod.Version = "1.2.0"; mod.Description = ModCopy.Description(mod.Id) ?? mod.Description; mod.Instructions = ModHelp.Build(mod); ModTaxonomy.Enrich(mod); }
         return result;
         void Dashboard(string id, string name, string description, WidgetNode layout) => result.Add(new ModDefinition { Format = 2, Id = "harbor." + id, Name = name, Category = "Dashboards", Description = description, Component = "dashboard", Layout = layout, Options = CommonOptions(360) });
         static WidgetNode Text(string text, double size) => new() { Type = "text", Text = text, FontSize = size };

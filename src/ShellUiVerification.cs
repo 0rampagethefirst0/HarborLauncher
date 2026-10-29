@@ -29,7 +29,7 @@ internal static class ShellUiVerification
         c.TopDockEnabled = false; check("A hidden Dock releases its reserved screen space", BarLayout.ReservedTop(c, true) == 0, null);
         c.TopDockEnabled = true; c.TopDockReserveSpace = false; check("Overlay mode releases the Dock work area", BarLayout.ReservedTop(c, true) == 0, null);
         c.TopDockReserveSpace = true; c.TopDockPrimaryOnly = true; check("Main-display-only Dock reserves space only on that display", BarLayout.ReservedTop(c, false) == 0 && BarLayout.ReservedTop(c, true) == c.TopBarHeight, null); c.TopDockPrimaryOnly = false;
-        c.PreviewFramesPerSecond = 1000; c.Normalize(); check("Preview frame rates stay within the supported range", c.PreviewFramesPerSecond == 30 && ModDemoScene.Frames == 96 && Math.Abs(ModDemoScene.FrameMilliseconds - 1000d / 30) < .01, null);
+        c.PreviewFramesPerSecond = 1000; c.Normalize(); check("Preview frame rates stay within the supported range", c.PreviewFramesPerSecond == 60 && ModDemoScene.Frames == 192 && Math.Abs(ModDemoScene.FrameMilliseconds - 1000d / 60) < .01, null);
         var model = new Shell(c); var bar = new TopBar(model, model.CurrentMonitor()); bar.PreparePreview();
         bar.MoveButton("mods", "apps", "left");
         check("The Dock drop action updates and saves button order", c.TopDockItems.FindIndex(i => i.Id == "mods") + 1 == c.TopDockItems.FindIndex(i => i.Id == "apps") && Settings.Load().TopDockItems.First(i => i.Id == "mods").Group == "left", null);
@@ -43,6 +43,7 @@ internal static class ShellUiVerification
         check("Opening Dock controls does not save or change settings", File.ReadAllText(Settings.FilePath) == before, null);
         DockPlacementVerification.Run(check);
         AppFolderVerification.Run(check);
+        ReadabilityVerification.Run(directory, check);
         var a = new FileTab(@"C:\Alpha"); var b = new FileTab(@"C:\Beta"); a.Visit(@"C:\Alpha\Child", true); b.Search = "notes";
         check("File tabs keep their own history and search", a.Previous() == @"C:\Alpha" && b.Back.Count == 0 && b.Search == "notes", null);
         var entries = new[] { new FileEntry("b", "beta.txt", false, 90, DateTime.Today), new FileEntry("folder", "Zulu", true, 0, DateTime.Today), new FileEntry("a", "alpha.txt", false, 10, DateTime.Today) };

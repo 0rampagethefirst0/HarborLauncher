@@ -42,8 +42,8 @@ internal static class ModTaxonomy
     }
     internal static string Description(string main) => main switch {
         "Desktop" => "Make every window, dock and desktop work your way.",
-        "Themes" => "Give your workspace a completely different feeling.",
-        _ => "Small additions that make a big difference every day."
+        "Themes" => "Change the colors used across Harbor.",
+        _ => "Add notes, timers, system meters, and shortcuts to your desktop."
     };
     internal static void Enrich(ModDefinition m)
     {
@@ -55,7 +55,7 @@ internal static class ModTaxonomy
         if (m.Component.StartsWith("window-")) tags.Add("per-app");
         if (m.Component == "system") tags.AddRange(new[] { "cpu", "ram", "monitoring" });
         if (m.Component is "notes" or "tasks" or "focus") tags.AddRange(new[] { "work", "study", "productivity" });
-        m.Tags = m.Tags.Concat(tags).Distinct(StringComparer.OrdinalIgnoreCase).Take(30).ToList();
+        m.Tags = m.Tags.Concat(tags).Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim().ToLowerInvariant()).Distinct(StringComparer.OrdinalIgnoreCase).Take(30).ToList();
     }
     internal static void Validate(ModDefinition m)
     {

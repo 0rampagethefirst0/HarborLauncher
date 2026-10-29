@@ -4,9 +4,9 @@
   "FilmWidth": 540,
   "FilmHeight": 300,
   "Columns": 12,
-  "Frames": 96,
-  "FrameMilliseconds": 33.333333333333336,
-  "FramesPerSecond": 30,
+  "Frames": 192,
+  "FrameMilliseconds": 16.666666666666668,
+  "FramesPerSecond": 60,
   "SampleData": true,
   "DesktopChanged": false,
   "Items": [
@@ -15,7 +15,7 @@
       "Component": "title-actions",
       "Renderer": "title-actions",
       "Caption": "Double-click to maximize. Right-click for window controls.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.title-actions.png",
       "Film": "harbor.title-actions-film.png"
     },
@@ -24,7 +24,7 @@
       "Component": "window-topmost",
       "Renderer": "window-topmost",
       "Caption": "Focus another app. Your pinned window stays in front.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.window-topmost.png",
       "Film": "harbor.window-topmost-film.png"
     },
@@ -33,7 +33,7 @@
       "Component": "launchpad",
       "Renderer": "native-widget",
       "Caption": "Click your shortcut to open an app or website.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.launchpad.png",
       "Film": "harbor.launchpad-film.png"
     },
@@ -42,7 +42,7 @@
       "Component": "window-placement",
       "Renderer": "window-placement",
       "Caption": "Open Notepad on the right side automatically.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.window-placement.png",
       "Film": "harbor.window-placement-film.png"
     },
@@ -51,7 +51,7 @@
       "Component": "dock-wheel-volume",
       "Renderer": "dock-wheel-volume",
       "Caption": "Alt \u002B scroll lowers Music. Game volume stays at 70%.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.dock-wheel-volume.png",
       "Film": "harbor.dock-wheel-volume-film.png"
     },
@@ -60,7 +60,7 @@
       "Component": "tasks",
       "Renderer": "native-widget",
       "Caption": "Tick off tasks and keep your progress.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.tasks.png",
       "Film": "harbor.tasks-film.png"
     },
@@ -69,7 +69,7 @@
       "Component": "clipboard",
       "Renderer": "native-widget",
       "Caption": "Copy several things, then pick an earlier item.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.clipboard.png",
       "Film": "harbor.clipboard-film.png"
     },
@@ -78,7 +78,7 @@
       "Component": "dashboard",
       "Renderer": "native-widget",
       "Caption": "Use your checklist, timer and notes together.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.day-planner.png",
       "Film": "harbor.day-planner-film.png"
     },
@@ -87,7 +87,7 @@
       "Component": "calculator",
       "Renderer": "native-widget",
       "Caption": "Type (12 \u002B 8) \u00D7 4. The answer appears: 80.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.calculator.png",
       "Film": "harbor.calculator-film.png"
     },
@@ -96,7 +96,7 @@
       "Component": "clock",
       "Renderer": "native-widget",
       "Caption": "See the time and date right on your desktop.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.clock.png",
       "Film": "harbor.clock-film.png"
     },
@@ -105,7 +105,7 @@
       "Component": "dock-labels",
       "Renderer": "dock-labels",
       "Caption": "See app names beside their taskbar icons.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.dock-labels.png",
       "Film": "harbor.dock-labels-film.png"
     },
@@ -114,7 +114,7 @@
       "Component": "storage",
       "Renderer": "native-widget",
       "Caption": "Check the free space on each drive.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.storage.png",
       "Film": "harbor.storage-film.png"
     },
@@ -123,7 +123,7 @@
       "Component": "",
       "Renderer": "shell-palette",
       "Caption": "Apply Ember across your Dock, taskbar and widgets.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.ember.png",
       "Film": "harbor.ember-film.png"
     },
@@ -132,7 +132,7 @@
       "Component": "focus",
       "Renderer": "native-widget",
       "Caption": "Start a countdown for your next focus session.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.focus.png",
       "Film": "harbor.focus-film.png"
     },
@@ -141,7 +141,7 @@
       "Component": "",
       "Renderer": "shell-palette",
       "Caption": "Apply Forest across your Dock, taskbar and widgets.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.forest.png",
       "Film": "harbor.forest-film.png"
     },
@@ -150,7 +150,7 @@
       "Component": "dock-middle-close",
       "Renderer": "dock-middle-close",
       "Caption": "Middle-click to close one window, leaving the other open.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.dock-middle-close.png",
       "Film": "harbor.dock-middle-close-film.png"
     },
@@ -159,7 +159,7 @@
       "Component": "",
       "Renderer": "shell-palette",
       "Caption": "Apply Midnight across your Dock, taskbar and widgets.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.midnight.png",
       "Film": "harbor.midnight-film.png"
     },
@@ -168,7 +168,7 @@
       "Component": "dock-monitor-only",
       "Renderer": "dock-monitor-only",
       "Caption": "Each taskbar marks the apps open on its own display.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.dock-monitor-only.png",
       "Film": "harbor.dock-monitor-only-film.png"
     },
@@ -177,7 +177,7 @@
       "Component": "network",
       "Renderer": "native-widget",
       "Caption": "See download and upload speeds separately.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.network.png",
       "Film": "harbor.network-film.png"
     },
@@ -186,7 +186,7 @@
       "Component": "",
       "Renderer": "shell-palette",
       "Caption": "Apply Plum across your Dock, taskbar and widgets.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.plum.png",
       "Film": "harbor.plum-film.png"
     },
@@ -195,7 +195,7 @@
       "Component": "folders",
       "Renderer": "native-widget",
       "Caption": "Click Projects to open that folder.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.folders.png",
       "Film": "harbor.folders-film.png"
     },
@@ -204,7 +204,7 @@
       "Component": "notes",
       "Renderer": "native-widget",
       "Caption": "Type a note. It saves as you write.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.notes.png",
       "Film": "harbor.notes-film.png"
     },
@@ -213,7 +213,7 @@
       "Component": "window-memory",
       "Renderer": "window-memory",
       "Caption": "Move it, close it, then reopen it in the same place.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.window-memory.png",
       "Film": "harbor.window-memory-film.png"
     },
@@ -222,7 +222,7 @@
       "Component": "dashboard",
       "Renderer": "native-widget",
       "Caption": "Check CPU, RAM and free space in one place.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.resource-desk.png",
       "Film": "harbor.resource-desk-film.png"
     },
@@ -231,7 +231,7 @@
       "Component": "toolbar-wheel-volume",
       "Renderer": "toolbar-wheel-volume",
       "Caption": "Scroll the top Dock to change system volume.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.toolbar-wheel-volume.png",
       "Film": "harbor.toolbar-wheel-volume-film.png"
     },
@@ -240,7 +240,7 @@
       "Component": "dock-scroll-windows",
       "Renderer": "dock-scroll-windows",
       "Caption": "Scroll this icon to switch between three windows.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.dock-scroll-windows.png",
       "Film": "harbor.dock-scroll-windows-film.png"
     },
@@ -249,7 +249,7 @@
       "Component": "dashboard",
       "Renderer": "native-widget",
       "Caption": "Change volume, mute, or skip a track here.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.sound-desk.png",
       "Film": "harbor.sound-desk-film.png"
     },
@@ -258,7 +258,7 @@
       "Component": "stopwatch",
       "Renderer": "native-widget",
       "Caption": "Count up from zero, then pause or reset.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.stopwatch.png",
       "Film": "harbor.stopwatch-film.png"
     },
@@ -267,7 +267,7 @@
       "Component": "system",
       "Renderer": "native-widget",
       "Caption": "The graph tracks CPU use. RAM use stays beside it.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.system.png",
       "Film": "harbor.system-film.png"
     },
@@ -276,7 +276,7 @@
       "Component": "clock-seconds",
       "Renderer": "clock-seconds",
       "Caption": "Add seconds to the clock on the top Dock.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.clock-seconds.png",
       "Film": "harbor.clock-seconds-film.png"
     },
@@ -285,7 +285,7 @@
       "Component": "converter",
       "Renderer": "native-widget",
       "Caption": "Convert 100 km/h into 62.14 mph.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.converter.png",
       "Film": "harbor.converter-film.png"
     },
@@ -294,7 +294,7 @@
       "Component": "uptime",
       "Renderer": "native-widget",
       "Caption": "See the time since your last Windows restart.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.uptime.png",
       "Film": "harbor.uptime-film.png"
     },
@@ -303,7 +303,7 @@
       "Component": "dashboard",
       "Renderer": "native-widget",
       "Caption": "Open apps and organize windows from one panel.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.window-desk.png",
       "Film": "harbor.window-desk-film.png"
     },
@@ -312,7 +312,7 @@
       "Component": "layouts",
       "Renderer": "native-widget",
       "Caption": "Choose a layout to organize your open windows.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.layouts.png",
       "Film": "harbor.layouts-film.png"
     },
@@ -321,7 +321,7 @@
       "Component": "window-opacity",
       "Renderer": "window-opacity",
       "Caption": "Lower opacity to see the files behind Notepad.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.window-opacity.png",
       "Film": "harbor.window-opacity-film.png"
     },
@@ -330,7 +330,7 @@
       "Component": "world-clock",
       "Renderer": "native-widget",
       "Caption": "Check Tokyo\u2019s time alongside your local time.",
-      "FrameCount": 96,
+      "FrameCount": 192,
       "Poster": "harbor.world-clock.png",
       "Film": "harbor.world-clock-film.png"
     }

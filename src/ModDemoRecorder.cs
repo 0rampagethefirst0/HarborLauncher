@@ -61,7 +61,7 @@ internal static class ModDemoRecorder
                 Save(strip, Path.Combine(directory, mod.Id + "-film.png"));
                 report.Add(new { mod.Id, mod.Component, Renderer = demo.Renderer, Caption = demo.Instruction, FrameCount = ModDemoScene.Frames, Poster = mod.Id + ".png", Film = mod.Id + "-film.png" });
             }
-            File.WriteAllText(Path.Combine(directory, "demos.json"), JsonSerializer.Serialize(new { Width = ModDemoScene.Width, Height = ModDemoScene.Height, FilmWidth = ModDemoScene.FilmWidth, FilmHeight = ModDemoScene.FilmHeight, Columns = ModDemoScene.Columns, Frames = ModDemoScene.Frames, FrameMilliseconds = ModDemoScene.FrameMilliseconds, FramesPerSecond = 30, SampleData = true, DesktopChanged = false, Items = report }, Mods.Json));
+            File.WriteAllText(Path.Combine(directory, "demos.json"), JsonSerializer.Serialize(new { Width = ModDemoScene.Width, Height = ModDemoScene.Height, FilmWidth = ModDemoScene.FilmWidth, FilmHeight = ModDemoScene.FilmHeight, Columns = ModDemoScene.Columns, Frames = ModDemoScene.Frames, FrameMilliseconds = ModDemoScene.FrameMilliseconds, FramesPerSecond = 60, SampleData = true, DesktopChanged = false, Items = report }, Mods.Json));
             var overview = new DrawingVisual(); using (var dc = overview.RenderOpen())
             {
                 dc.DrawRectangle(Theme.Bg, null, new Rect(0, 0, 1440, 2025)); int index = 0;

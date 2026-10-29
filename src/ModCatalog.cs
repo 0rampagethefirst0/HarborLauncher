@@ -189,9 +189,12 @@ internal sealed class ModCatalog : Window
     void Details(StackPanel panel, ModDefinition mod, Dictionary<string, string>? edits = null)
     {
         var back = Theme.Button("← Back to mods", "Back to mods", () => { screen = "catalog"; Render(); }); back.HorizontalAlignment = HorizontalAlignment.Left; back.Margin = new Thickness(0, 0, 0, 15); panel.Children.Add(back);
-        panel.Children.Add(new ModBanner(mod, shell, 310, true)); Text(panel, mod.Name, 30, marginTop: 15); Text(panel, $"{mod.Author} · {ModTaxonomy.MainOf(mod)} / {ModTaxonomy.SubOf(mod)} · v{mod.Version}", 12, true); Text(panel, mod.Description, 14);
+        Text(panel, mod.Name, 30, marginTop: 0); Text(panel, $"{mod.Author} · {ModTaxonomy.MainOf(mod)} / {ModTaxonomy.SubOf(mod)} · v{mod.Version}", 13, true); Text(panel, mod.Description, 15);
+        var hero = new Grid { Margin = new Thickness(0, 12, 0, 16) }; hero.ColumnDefinitions.Add(new ColumnDefinition()); hero.ColumnDefinitions.Add(new ColumnDefinition());
+        hero.Children.Add(new ModBanner(mod, shell, 280, true) { Margin = new Thickness(0, 0, 16, 0), VerticalAlignment = VerticalAlignment.Center }); var usage = UsageCard(mod); Grid.SetColumn(usage, 1); hero.Children.Add(usage); panel.Children.Add(hero);
         var tags = new WrapPanel { Margin = new Thickness(0, 0, 0, 14) }; foreach (string t in mod.Tags) tags.Children.Add(Chip(t, () => { tag = t; main = ""; sub = "All"; screen = "catalog"; page = 0; Render(); }, true)); panel.Children.Add(tags);
         var actions = new WrapPanel { Margin = new Thickness(0, 0, 0, 15) }; actions.Children.Add(InstallButton(mod));
+        actions.Children.Add(Theme.Button("Larger preview", "Open a larger animated demonstration", () => new ModPreviewWindow(shell, mod) { Owner = this }.Show()));
         if (shell.Mods.Installed(mod)) actions.Children.Add(Theme.Button(shell.Mods.EnabledMod(mod) ? "Pause" : "Resume", "Toggle this mod without uninstalling", () => Try(() => { Commit(mod); shell.Mods.Enable(mod, !shell.Mods.EnabledMod(mod), true); })));
         if (shell.Mods.UpdateAvailable(mod)) actions.Children.Add(Theme.Button("Update", "Update this mod", () => Try(() => { if (shell.Mods.EnabledMod(mod)) shell.Mods.Enable(mod, true, true); else shell.Mods.Install(mod); })));
         actions.Children.Add(Theme.Button(shell.Config.FavoriteMods.Contains(mod.Id) ? "Unfavorite" : "Favorite", "Toggle favorite", () => Try(() => { if (!shell.Config.FavoriteMods.Remove(mod.Id)) shell.Config.FavoriteMods.Add(mod.Id); shell.Config.Save(); Render(); })));
@@ -207,16 +210,23 @@ internal sealed class ModCatalog : Window
             Text(panel, "App patterns match executable names, full paths or packaged app IDs. * matches any text; ? matches one character. A blank app list matches nothing. Window effects pause on the active game’s monitor.", 12, true, 10);
         }
         draft.Clear(); foreach (var option in mod.Options) draft[option.Key] = edits?.GetValueOrDefault(option.Key) ?? shell.Mods.Value(mod, option.Key);
-        if (mod.Options.Count > 0) Text(panel, "Make it yours", 20, marginTop: 20);
+        if (mod.Options.Count > 0) Text(panel, "Plugin settings", 20, marginTop: 20);
         foreach (var option in mod.Options)
         {
             Text(panel, option.Label, 13, marginTop: 8);
+            Text(panel, ModHelp.OptionHint(mod, option), 13, true);
             if (option.Type == "choice") { var box = new ComboBox { ItemsSource = option.Choices, SelectedItem = draft[option.Key], MinHeight = 34, MaxWidth = 580, HorizontalAlignment = HorizontalAlignment.Left, MinWidth = 260 }; AutomationProperties.SetName(box, option.Label); box.SelectionChanged += (_, _) => { if (box.SelectedItem is string value) draft[option.Key] = value; }; panel.Children.Add(box); }
             else { var box = new TextBox { Text = draft[option.Key], AcceptsReturn = option.Type == "multiline", MinHeight = option.Type == "multiline" ? 90 : 34, MaxLength = 10000, TextWrapping = TextWrapping.Wrap, MaxWidth = 730, HorizontalAlignment = HorizontalAlignment.Stretch }; AutomationProperties.SetName(box, option.Label); box.TextChanged += (_, _) => draft[option.Key] = box.Text; panel.Children.Add(box); }
         }
         if (mod.Options.Count > 0) { var buttons = new WrapPanel { Margin = new Thickness(0, 20, 0, 20) }; buttons.Children.Add(Theme.Button("Apply settings", "Apply plugin settings", () => Try(() => { Commit(mod); shell.RebuildMods(); status.Text = "Settings applied."; }))); buttons.Children.Add(Theme.Button("Reset", "Reset plugin settings", () => Try(() => { shell.Mods.Configure(mod, mod.Options.ToDictionary(o => o.Key, o => o.Default)); shell.RebuildMods(); Render(); }))); panel.Children.Add(buttons); }
     }
     void Create() => new ModCreator(shell, null, false, created => OpenDetails(created)) { Owner = this }.Show();
+    static FrameworkElement UsageCard(ModDefinition mod)
+    {
+        var guide = new StackPanel { Margin = new Thickness(20) }; guide.Children.Add(Theme.Label("How to use", 22)); int stepNumber = 0;
+        foreach (string step in ModHelp.Steps(mod)) { var row = new DockPanel { Margin = new Thickness(0, 14, 0, 0) }; var number = Theme.Label((++stepNumber).ToString(), 15, Theme.Accent); number.Width = 28; number.VerticalAlignment = VerticalAlignment.Top; row.Children.Add(number); row.Children.Add(new TextBlock { Text = step, Foreground = Theme.Text, FontSize = 15, TextWrapping = TextWrapping.Wrap, LineHeight = 24 }); guide.Children.Add(row); }
+        return new Border { Background = Theme.Panel, BorderBrush = Theme.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Child = guide };
+    }
     void Export(ModDefinition mod)
     { var dialog = new SaveFileDialog { Filter = "Harbor plugin|*.harbormod", FileName = mod.Id + ".harbormod" }; if (dialog.ShowDialog(this) == true) Try(() => { if (screen == "detail") Commit(mod); shell.Mods.ExportConfigured(mod, dialog.FileName); status.Text = "Package exported."; }); }
     void Import()
@@ -235,6 +245,7 @@ internal sealed class ModCatalog : Window
     internal void PreparePreview(string kind)
     {
         if (kind.StartsWith("category:")) { main = kind[9..]; screen = "showcase"; }
+        else if (kind.StartsWith("detail:")) { selected = kind[7..]; screen = "detail"; }
         else if (kind.StartsWith("catalog:")) { main = kind[8..]; screen = "catalog"; }
         else if (kind == "Behavior mods") { selected = "harbor.window-placement"; screen = "detail"; main = "Desktop"; }
         else if (kind == "Installed") { screen = "catalog"; library = kind; }

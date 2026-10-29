@@ -36,6 +36,7 @@ internal sealed partial class Files
             if (tabs.Count < 84 && !closedFolderTabs.Contains(path) && tabs.All(t => !t.Folder.Equals(path, StringComparison.OrdinalIgnoreCase))) tabs.Add(new FileTab(path) { Label = folder.Name });
         }
         if (!tabs.Contains(active)) { active = tabs.FirstOrDefault() ?? new FileTab(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)); if (tabs.Count == 0) tabs.Add(active); Load(active.Folder, false); }
+        else if (IsHome) RenderHome();
         else if (CurrentAppFolder != null) { RenderAppFolderPage(); heading.Text = CurrentAppFolder.Name; Title = CurrentAppFolder.Name + " — Harbor Files"; RenderLocation(); }
         RenderTabs(); RenderSidebar();
     }
@@ -58,7 +59,7 @@ internal sealed partial class Files
     }
     void RenderAppFolderSidebar()
     {
-        var section = Theme.Label("APP FOLDERS", 9, Theme.Muted); section.Margin = new Thickness(10, 20, 0, 9); sidebar.Children.Add(section);
+        var section = Theme.Label("APP COLLECTIONS", 11, Theme.Muted); section.Margin = new Thickness(10, 20, 0, 9); sidebar.Children.Add(section);
         foreach (var folder in shell.Config.AppFolders) {
             var b = ActionButton("folder", folder.Name, () => OpenAppFolderTab(TaskbarFolders.Path(folder))); b.HorizontalContentAlignment = HorizontalAlignment.Left; b.Padding = new Thickness(10, 9, 4, 9); b.ContextMenu = FolderUi.Menu(shell, folder, this); b.AllowDrop = true;
             b.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) ? DragDropEffects.Move : e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Link : DragDropEffects.None; e.Handled = true; };
@@ -79,9 +80,9 @@ internal sealed partial class Files
         actions.Children.Add(ActionButton("plus", "Add apps", () => new AppFolderPicker(shell, folder).Show())); actions.Children.Add(ActionButton("typing", "Rename folder", () => FolderUi.Rename(shell, folder, this))); DockPanel.SetDock(actions, System.Windows.Controls.Dock.Top); appFolderView.Children.Add(actions);
         var cards = new WrapPanel(); bool details = shell.Config.FilesView == "details";
         foreach (var pin in folder.Apps.Where(p => p.Name.Contains(active.Search, StringComparison.CurrentCultureIgnoreCase))) {
-            var content = new StackPanel { Width = details ? 240 : 126, Orientation = details ? Orientation.Horizontal : Orientation.Vertical, Margin = new Thickness(8) }; content.Children.Add(Theme.AppIcon(pin.Path, pin.Name, details ? 26 : 44));
-            var label = Theme.Label(pin.Name, 12); label.TextTrimming = TextTrimming.CharacterEllipsis; label.MaxWidth = details ? 190 : 126; label.TextAlignment = details ? TextAlignment.Left : TextAlignment.Center; label.Margin = details ? new Thickness(12, 0, 0, 0) : new Thickness(0, 12, 0, 0); content.Children.Add(label);
-            var button = Theme.Button(content, pin.Name + " · double-click to open · drag to move", () => { if (AppDrag.Suppressed) return; selectedFolderApp = pin; RenderFolderAppPreview(); }); button.AllowDrop = true; button.ContextMenu = FolderUi.AppMenu(shell, folder, pin); AutomationProperties.SetAutomationId(button, "file-folder-app:" + pin.Path);
+            var content = new StackPanel { Width = details ? 300 : shell.Config.FilesTileSize - 30, Orientation = details ? Orientation.Horizontal : Orientation.Vertical, Margin = new Thickness(8) }; content.Children.Add(Theme.AppIcon(pin.Path, pin.Name, details ? 36 : 60));
+            var label = Theme.Label(pin.Name, shell.Config.FilesTextSize); label.TextTrimming = TextTrimming.CharacterEllipsis; label.MaxWidth = details ? 240 : shell.Config.FilesTileSize - 30; label.TextAlignment = details ? TextAlignment.Left : TextAlignment.Center; label.Margin = details ? new Thickness(12, 0, 0, 0) : new Thickness(0, 12, 0, 0); content.Children.Add(label);
+            var button = Theme.Button(content, pin.Name + " · double-click to open · drag to move", () => { if (AppDrag.Suppressed) return; selectedFolderApp = pin; RenderFolderAppPreview(); }); button.Background = Theme.Panel; button.Margin = new Thickness(5); button.Padding = new Thickness(14); button.AllowDrop = true; button.ContextMenu = FolderUi.AppMenu(shell, folder, pin); AutomationProperties.SetAutomationId(button, "file-folder-app:" + pin.Path);
             button.MouseDoubleClick += (_, e) => { if (!AppDrag.Suppressed) shell.ActivateApp(pin); e.Handled = true; };
             AppDrag.Bind(button, () => pin, value => { folderDragging = value; if (!value) Dispatcher.BeginInvoke(new Action(() => { if (pendingFolderSync) { pendingFolderSync = false; SyncAppFolderTabs(); } else RenderAppFolderPage(); })); });
             button.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) ? DragDropEffects.Move : DragDropEffects.Link; e.Handled = true; button.Background = Theme.Raised; };

@@ -34,8 +34,11 @@ internal static class FolderUi
     internal static FrameworkElement Icon(AppFolder folder, double size)
     {
         var root = new Grid { Width = size, Height = size }; var background = new Border { Background = Theme.Raised, CornerRadius = new CornerRadius(Math.Max(4, size / 5)), BorderBrush = Theme.Line, BorderThickness = new Thickness(1) }; root.Children.Add(background);
-        var grid = new UniformGrid { Rows = 2, Columns = 2, Margin = new Thickness(size * .12) };
-        foreach (var pin in folder.Apps.Take(4)) grid.Children.Add(Theme.AppIcon(pin.Path, pin.Name, (int)Math.Max(8, size * .32))); root.Children.Add(grid);
+        var grid = new Grid { Margin = new Thickness(size * .10) };
+        if (folder.Apps.FirstOrDefault() is { } first) { var cover = Theme.AppIcon(first.Path, first.Name, (int)Math.Max(20, size * .65)); cover.HorizontalAlignment = HorizontalAlignment.Left; cover.VerticalAlignment = VerticalAlignment.Top; grid.Children.Add(cover); }
+        if (folder.Apps.Skip(1).FirstOrDefault() is { } second) { var next = Theme.AppIcon(second.Path, second.Name, (int)Math.Max(16, size * .43)); next.HorizontalAlignment = HorizontalAlignment.Right; next.VerticalAlignment = VerticalAlignment.Bottom; grid.Children.Add(new Border { Child = next, Background = Theme.Panel, CornerRadius = new CornerRadius(5), Padding = new Thickness(2), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom }); }
+        root.Children.Add(grid);
+        if (folder.Apps.Count > 2) { var count = Theme.Label(folder.Apps.Count.ToString(), Math.Max(10, size * .21)); count.HorizontalAlignment = HorizontalAlignment.Center; root.Children.Add(new Border { Child = count, Background = Theme.Panel, BorderBrush = Theme.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), MinWidth = 19, Padding = new Thickness(3, 1, 3, 1), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, -3, -3, 0) }); }
         if (folder.Apps.Count == 0) root.Children.Add(UiIcons.Icon("folder", size * .62)); return root;
     }
     internal static void Rename(Shell shell, AppFolder folder, Window owner)
@@ -69,11 +72,11 @@ internal sealed class AppFolderPopup : Window
     bool dragging, editing;
     internal AppFolderPopup(Shell shell, AppFolder folder, IntPtr monitor)
     {
-        this.shell = shell; this.folder = folder; Title = "Harbor — " + folder.Name; Theme.PopupWindow(this, 530, 430, monitor, true);
+        this.shell = shell; this.folder = folder; Title = "Harbor — " + folder.Name; Theme.PopupWindow(this, 600, 500, monitor, true);
         var root = new DockPanel { Margin = new Thickness(20), Background = Brushes.Transparent, AllowDrop = true }; var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14) };
-        var edit = Theme.Button(UiIcons.Icon("typing"), "Rename folder", () => { editing = true; try { FolderUi.Rename(shell, folder, this); } finally { editing = false; } }); DockPanel.SetDock(edit, System.Windows.Controls.Dock.Right); header.Children.Add(edit);
-        var files = Theme.Button(UiIcons.Icon("folder"), "Open folder in Files", () => shell.OpenFiles(TaskbarFolders.Path(folder))); DockPanel.SetDock(files, System.Windows.Controls.Dock.Right); header.Children.Add(files); title = Theme.Label(folder.Name, 24); header.Children.Add(title); DockPanel.SetDock(header, System.Windows.Controls.Dock.Top); root.Children.Add(header);
-        var note = Theme.Label("Drag apps here. Drag between icons to rearrange them.", 11, Theme.Muted); note.Margin = new Thickness(0, 12, 0, 0); DockPanel.SetDock(note, System.Windows.Controls.Dock.Bottom); root.Children.Add(note); root.Children.Add(new ScrollViewer { Content = apps, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        var edit = Theme.Button(UiIcons.Label("Rename", 14, "typing"), "Rename folder", () => { editing = true; try { FolderUi.Rename(shell, folder, this); } finally { editing = false; } }); DockPanel.SetDock(edit, System.Windows.Controls.Dock.Right); header.Children.Add(edit);
+        var files = Theme.Button(UiIcons.Label("Files", 14, "folder"), "Open folder in Files", () => shell.OpenFiles(TaskbarFolders.Path(folder))); DockPanel.SetDock(files, System.Windows.Controls.Dock.Right); header.Children.Add(files); title = Theme.Label(folder.Name, 24); title.TextTrimming = TextTrimming.CharacterEllipsis; header.Children.Add(title); DockPanel.SetDock(header, System.Windows.Controls.Dock.Top); root.Children.Add(header);
+        var note = Theme.Label("Click an app to open it. Drag to rearrange; right-click for more.", 13, Theme.Muted); note.Margin = new Thickness(0, 12, 0, 0); DockPanel.SetDock(note, System.Windows.Controls.Dock.Bottom); root.Children.Add(note); var scroll = new ScrollViewer { Content = apps, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; Motion.SmoothScroll(scroll); root.Children.Add(scroll);
         var card = Theme.Card(root, 17); Content = card;
         root.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) ? DragDropEffects.Move : e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Link : DragDropEffects.None; e.Handled = true; };
         root.Drop += (_, e) => { foreach (var pin in TaskbarFolders.Shortcuts(e.Data)) TaskbarFolders.Add(shell.Config, folder, pin); shell.SaveShortcuts(); e.Handled = true; };
@@ -86,7 +89,7 @@ internal sealed class AppFolderPopup : Window
         if (dragging) return; if (!shell.Config.AppFolders.Contains(folder)) { if (IsLoaded) Close(); return; }
         title.Text = folder.Name; Title = "Harbor — " + folder.Name; apps.Children.Clear();
         foreach (var pin in folder.Apps.ToArray()) {
-            var content = new StackPanel { Width = 88, Margin = new Thickness(2, 8, 2, 8) }; content.Children.Add(Theme.AppIcon(pin.Path, pin.Name, 36)); var label = Theme.Label(pin.Name, 11); label.TextAlignment = TextAlignment.Center; label.TextWrapping = TextWrapping.Wrap; label.MaxHeight = 32; label.Margin = new Thickness(0, 8, 0, 0); content.Children.Add(label);
+            var content = new StackPanel { Width = 110, Margin = new Thickness(4, 12, 4, 12) }; content.Children.Add(Theme.AppIcon(pin.Path, pin.Name, 48)); var label = Theme.Label(pin.Name, 14); label.TextAlignment = TextAlignment.Center; label.TextWrapping = TextWrapping.Wrap; label.MaxHeight = 42; label.Margin = new Thickness(0, 11, 0, 0); content.Children.Add(label);
             var button = Theme.Button(content, pin.Name, () => { if (AppDrag.Suppressed) return; shell.ActivateApp(pin); Close(); }); button.ContextMenu = FolderUi.AppMenu(shell, folder, pin); AutomationProperties.SetAutomationId(button, "folder-app:" + pin.Path); button.AllowDrop = true;
             AppDrag.Bind(button, () => pin, value => { dragging = value; if (!value) Dispatcher.BeginInvoke(new Action(Render)); });
             button.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) ? DragDropEffects.Move : DragDropEffects.Link; e.Handled = true; button.Background = Theme.Raised; };

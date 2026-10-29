@@ -87,9 +87,10 @@ internal sealed class DockPlacementPanel : Panel
     protected override Size ArrangeOverride(Size finalSize)
     {
         arrangedWidth = finalSize.Width;
+        var previous = Slots.ToDictionary(s => s.Id, s => s.Left);
         Slots = Calculate(Moving, Position);
         var lookup = Slots.ToDictionary(s => s.Id);
-        foreach (FrameworkElement child in InternalChildren) { var slot = lookup[(string)child.Tag]; child.Arrange(new Rect(slot.Left, 0, slot.Width, finalSize.Height)); }
+        foreach (FrameworkElement child in InternalChildren) { var slot = lookup[(string)child.Tag]; child.Arrange(new Rect(slot.Left, 0, slot.Width, finalSize.Height)); if (Moving == null && previous.TryGetValue(slot.Id, out double before)) Motion.Move(child, before - slot.Left); }
         return finalSize;
     }
     internal List<DockSlot> Calculate(string? id = null, double? position = null) => DockPlacement.Arrange(config.TopDockItems, widths, UsableWidth, id, position);

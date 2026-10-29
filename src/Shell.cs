@@ -62,7 +62,7 @@ internal sealed class Shell : IDisposable
     // Used only by the offscreen visual check; it never creates shell surfaces or hooks.
     internal Shell(Settings config)
     {
-        Config = config;
+        Config = config; Motion.Configure(Config);
         Games = new Games(config);
         Mods = new Mods(config); Notifications = new Notifications(config); Mods.ApplyTheme();
         Tweaks = new Tweaks(this);
@@ -73,7 +73,7 @@ internal sealed class Shell : IDisposable
     internal Shell(bool barsOnly = false)
     {
         this.barsOnly = barsOnly;
-        Config = Settings.Load();
+        Config = Settings.Load(); Motion.Configure(Config);
         Games = new Games(Config);
         Mods = new Mods(Config); Notifications = new Notifications(Config); Mods.ApplyTheme(); Mods.Changed += RebuildMods;
         Tweaks = new Tweaks(this);

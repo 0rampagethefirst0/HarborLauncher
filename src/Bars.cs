@@ -39,6 +39,7 @@ internal sealed class Dock : Window
         Title = "Harbor \u2014 dock"; Width = 400; Height = shell.Config.DockHeight;
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; ShowInTaskbar = false; ShowActivated = false; Topmost = true; AllowsTransparency = true; Background = Brushes.Transparent;
         items = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 4, 8, 4), VerticalAlignment = VerticalAlignment.Center };
+        Motion.Reflow(items, () => dragging || Environment.TickCount64 < dragHoverUntil);
         scroller = new ScrollViewer { Content = items, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled };
         frame = new Border { Background = Theme.Bg, CornerRadius = new CornerRadius(shell.Config.DockRadius), BorderBrush = Theme.Line, BorderThickness = new Thickness(1), Margin = new Thickness(0, 4, 0, 4), Child = scroller };
         var root = new Grid(); root.Children.Add(frame);
@@ -62,6 +63,8 @@ internal sealed class Dock : Window
         PreviewMouseUp += (_, _) => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, new Action(() => Refresh()));
         PreviewMouseWheel += (_, e) => { var app = apps.Values.FirstOrDefault(a => a.Button.IsMouseOver); if (app != null && app.Wheel(e.Delta, (System.Windows.Input.Keyboard.Modifiers & ModifierKeys.Alt) != 0)) { e.Handled = true; return; } if (scroller.ScrollableWidth > 0) { scroller.ScrollToHorizontalOffset(scroller.HorizontalOffset - e.Delta * .6); e.Handled = true; } };
         menu.Items.Insert(3, Theme.Item("New app folder", () => { var folder = new AppFolder(); shell.Config.AppFolders.Add(folder); shell.SaveShortcuts(); shell.OpenAppFolder(folder, MonitorHandle); }));
+        var folderSizes = new MenuItem { Header = "Folder icon size", Icon = UiIcons.Icon("folder", 16) };
+        foreach (var choice in new[] { ("Compact", 40), ("Comfortable", 52), ("Large", 64) }) { var item = Theme.Item(choice.Item1, () => { shell.Config.TaskbarFolderSize = choice.Item2; shell.SaveShortcuts(); }); item.IsCheckable = true; item.IsChecked = shell.Config.TaskbarFolderSize == choice.Item2; folderSizes.Items.Add(item); } menu.Items.Insert(4, folderSizes);
         AllowDrop = true; root.AllowDrop = true; frame.AllowDrop = true; items.AllowDrop = true;
         root.PreviewDragOver += (_, e) => {
             if (!e.Data.GetDataPresent(TaskbarFolders.DragFormat) && !e.Data.GetDataPresent(DataFormats.FileDrop) && !e.Data.GetDataPresent(BarLayout.DividerDragFormat)) { e.Effects = DragDropEffects.None; return; }
@@ -111,7 +114,7 @@ internal sealed class Dock : Window
     {
         if (IsMouseCaptureWithin || (IsMouseOver && (Mouse.LeftButton == MouseButtonState.Pressed || Mouse.RightButton == MouseButtonState.Pressed || Mouse.MiddleButton == MouseButtonState.Pressed)) || MenuOpen) return;
         Height = shell.Config.DockHeight; frame.CornerRadius = new CornerRadius(shell.Config.DockRadius); appbar?.Configure(shell.Config.DockHeight, shell.Config.DockAlignment);
-        double buttonHeight = shell.Config.IconSize + 14; launcher.Height = arrange.Height = showDesktop.Height = buttonHeight;
+        double buttonHeight = Math.Max(shell.Config.IconSize + 14, shell.Config.AppFolders.Count > 0 ? shell.Config.TaskbarFolderSize + 32 : 0); launcher.Height = arrange.Height = showDesktop.Height = buttonHeight;
         var desired = new List<UIElement> { launcher, pinnedDivider }; var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase); var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var windows = shell.Tracker.Windows.Where(w => !shell.Tweaks.Has("dock-monitor-only") || w.Monitor == MonitorHandle).ToList();
         foreach (var pin in shell.Config.Pins)
@@ -209,18 +212,19 @@ internal sealed class Dock : Window
             var labels = dock.shell.Tweaks.Module("dock-labels"); bool labeled = labels != null && (current.Count > 0 || dock.shell.Mods.Value(labels, "when", "always") == "always");
             int labelWidth = labels == null ? 0 : (int)dock.shell.Mods.Number(labels, "width", 130, 50, 240);
             var folder = TaskbarFolders.Find(dock.shell.Config, path);
-            int size = dock.shell.Config.IconSize; string spec = path + "|" + name + "|" + size + "|" + labeled + "|" + labelWidth + "|" + (folder == null ? "" : string.Join("|", folder.Apps.Select(p => p.Path)));
+            int size = folder == null ? dock.shell.Config.IconSize : dock.shell.Config.TaskbarFolderSize; string spec = path + "|" + name + "|" + size + "|" + labeled + "|" + labelWidth + "|" + (folder == null ? "" : string.Join("|", folder.Apps.Select(p => p.Path)));
             caption.Text = labels != null && dock.shell.Mods.Value(labels, "label", "app") == "window" ? (current.FirstOrDefault(w => w.Handle == Native.GetForegroundWindow()) ?? current.FirstOrDefault())?.Title ?? name : name;
             if (spec != iconSpec)
             {
                 iconSpec = spec;
                 if (Button.Content is Panel old) { old.Children.Remove(indicator); old.Children.Remove(caption); }
-                var grid = new Grid { Width = size + 16 + (labeled ? labelWidth : 0), Height = size + 14 };
+                var grid = new Grid { Width = folder == null ? size + 16 + (labeled ? labelWidth : 0) : Math.Max(104, size + 32), Height = size + (folder == null ? 14 : 32) };
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(size + 16) }); if (labeled) grid.ColumnDefinitions.Add(new ColumnDefinition());
-                var icon = folder == null ? Theme.AppIcon(path, name, size) : FolderUi.Icon(folder, size); icon.VerticalAlignment = VerticalAlignment.Top; icon.Margin = new Thickness(0, 3, 0, 0); grid.Children.Add(icon); grid.Children.Add(indicator); Button.Content = grid;
-                if (labeled) { Grid.SetColumn(caption, 1); grid.Children.Add(caption); }
+                var icon = folder == null ? Theme.AppIcon(path, name, size) : FolderUi.Icon(folder, size); icon.VerticalAlignment = VerticalAlignment.Top; icon.HorizontalAlignment = HorizontalAlignment.Center; icon.Margin = new Thickness(0, 3, 0, 0); grid.Children.Add(icon); grid.Children.Add(indicator); Button.Content = grid;
+                if (folder != null) { grid.ColumnDefinitions.Clear(); var folderName = Theme.Label(name, 13); folderName.TextTrimming = TextTrimming.CharacterEllipsis; folderName.MaxWidth = 100; folderName.HorizontalAlignment = HorizontalAlignment.Center; folderName.VerticalAlignment = VerticalAlignment.Bottom; folderName.Margin = new Thickness(2, 0, 2, 9); grid.Children.Add(folderName); }
+                else if (labeled) { Grid.SetColumn(caption, 1); grid.Children.Add(caption); }
             }
-            Button.Height = size + 14; indicator.Visibility = current.Count > 0 ? Visibility.Visible : Visibility.Hidden;
+            Button.Height = size + (folder == null ? 14 : 32); indicator.Visibility = current.Count > 0 ? Visibility.Visible : Visibility.Hidden;
         }
         List<WindowEntry> Current() { var folder = TaskbarFolders.Find(dock.shell.Config, path); return dock.shell.Tracker.Windows.Where(w => (!dock.shell.Tweaks.Has("dock-monitor-only") || w.Monitor == dock.MonitorHandle) && (folder != null ? folder.Apps.Any(w.Matches) : pin != null ? w.Matches(pin) : w.Key.Equals(groupKey, StringComparison.OrdinalIgnoreCase))).ToList(); }
         internal bool Wheel(int delta, bool alt)

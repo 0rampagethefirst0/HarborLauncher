@@ -82,7 +82,9 @@ internal sealed class TopDockControls : Window
             Toggle("Hide bars in full screen", c.HideInFullscreen, v => c.HideInFullscreen = v);
             Toggle("24-hour clock", c.Use24HourClock, v => c.Use24HourClock = v);
             Toggle("Show seconds", c.TopDockSeconds, v => c.TopDockSeconds = v);
-            Slider("Preview frame rate", 12, 30, c.PreviewFramesPerSecond, "fps", v => c.PreviewFramesPerSecond = (int)v);
+            Slider("Preview frame rate", 15, 60, c.PreviewFramesPerSecond, "fps", v => c.PreviewFramesPerSecond = (int)v);
+            Slider("Animation frame target", 30, 120, c.AnimationFramesPerSecond, "fps", v => c.AnimationFramesPerSecond = (int)v);
+            Slider("Taskbar folder size", 40, 72, c.TaskbarFolderSize, "px", v => c.TaskbarFolderSize = (int)v);
             Slider("UI animation time", 0, 350, c.DockMotionMilliseconds, "ms", v => c.DockMotionMilliseconds = (int)v);
         }
     }

@@ -14,8 +14,8 @@ namespace Harbor;
 // This scene never launches apps, alters windows, changes volume, or saves fields.
 internal sealed class ModDemoScene
 {
-    internal const int Width = 720, Height = 400, Frames = 96, Columns = 12, FilmWidth = 540, FilmHeight = 300;
-    internal const double FrameMilliseconds = 1000d / 30;
+    internal const int Width = 720, Height = 400, Frames = 192, Columns = 12, FilmWidth = 540, FilmHeight = 300;
+    internal const double FrameMilliseconds = 1000d / 60;
     readonly string originalId;
     readonly ModDefinition mod;
     readonly WidgetDemoData data = new();

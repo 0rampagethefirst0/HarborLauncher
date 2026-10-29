@@ -49,7 +49,7 @@ internal static class TaskbarFolders
         if (IsFolder(source.Path)) throw new InvalidOperationException("Drop an app on a folder, or drag the folder by its edge to move it.");
         int index = c.Pins.FindIndex(p => p.Path.Equals(target.Path, StringComparison.OrdinalIgnoreCase));
         int sourceIndex = c.Pins.FindIndex(p => p.Path.Equals(source.Path, StringComparison.OrdinalIgnoreCase)); if (sourceIndex >= 0 && sourceIndex < index) index--;
-        var folder = new AppFolder { Apps = new() { target, source } }; RemoveApp(c, source.Path); RemoveApp(c, target.Path);
+        var folder = new AppFolder { Name = CleanName(target.Name + " + " + source.Name), Apps = new() { target, source } }; RemoveApp(c, source.Path); RemoveApp(c, target.Path);
         c.AppFolders.Add(folder); c.Pins.Insert(Math.Clamp(index, 0, c.Pins.Count), new Pin { Name = folder.Name, Path = Path(folder), Target = Path(folder) }); return folder;
     }
     internal static void Add(Settings c, AppFolder folder, Pin source, string? before = null, bool after = false)

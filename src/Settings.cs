@@ -47,11 +47,17 @@ public sealed class Settings
     public List<AppFolder> AppFolders { get; set; } = new();
     public List<string> AppFolderTabOrder { get; set; } = new();
     public List<TaskbarDivider> TaskbarDividers { get; set; } = new();
-    public int PreviewFramesPerSecond { get; set; } = 30;
+    public int PreviewFramesPerSecond { get; set; } = 60;
+    public int AnimationFramesPerSecond { get; set; } = 60;
+    public int ReadabilityVersion { get; set; }
+    public int TaskbarFolderSize { get; set; } = 52;
+    public int FilesTextSize { get; set; } = 16;
+    public int FilesTileSize { get; set; } = 184;
     public string FilesView { get; set; } = "details";
     public bool FilesPreview { get; set; } = true;
     public bool FilesShowHidden { get; set; }
     public List<string> FileFavorites { get; set; } = new();
+    public List<string> RecentFolders { get; set; } = new();
     public int DockHeight { get; set; } = 80;
     public int DockRadius { get; set; } = 15;
     public string DockAlignment { get; set; } = "center";
@@ -129,11 +135,15 @@ public sealed class Settings
         TopDockFontSize = Math.Clamp(TopDockFontSize, 10, 18); TopDockIconSize = Math.Clamp(TopDockIconSize, 12, 26);
         TopDockPadding = Math.Clamp(TopDockPadding, 3, 20); TopDockGap = Math.Clamp(TopDockGap, 0, 18); TopDockRadius = Math.Clamp(TopDockRadius, 0, 28); TopDockTitleWidth = Math.Clamp(TopDockTitleWidth, 80, 520);
         TopDockOpacity = double.IsFinite(TopDockOpacity) ? Math.Clamp(TopDockOpacity, .5, 1) : 1;
-        PreviewFramesPerSecond = Math.Clamp(PreviewFramesPerSecond, 12, 30);
+        if (ReadabilityVersion < 1) { PreviewFramesPerSecond = Math.Max(60, PreviewFramesPerSecond); ReadabilityVersion = 1; }
+        PreviewFramesPerSecond = Math.Clamp(PreviewFramesPerSecond, 15, 60); AnimationFramesPerSecond = Math.Clamp(AnimationFramesPerSecond, 30, 120);
+        TaskbarFolderSize = Math.Clamp(TaskbarFolderSize, 40, 72); FilesTextSize = Math.Clamp(FilesTextSize, 12, 20); FilesTileSize = Math.Clamp(FilesTileSize, 140, 240);
         if (FilesView is not "details" and not "grid") FilesView = "details";
         FileFavorites ??= new(); FileFavorites = FileFavorites.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase).Take(40).ToList();
+        RecentFolders ??= new(); RecentFolders = RecentFolders.Where(p => !string.IsNullOrWhiteSpace(p) && !TaskbarFolders.IsFolder(p)).Distinct(StringComparer.OrdinalIgnoreCase).Take(12).ToList();
         BarLayout.Normalize(this);
         TaskbarFolders.Normalize(this);
+        if (AppFolders.Count > 0) DockHeight = Math.Clamp(Math.Max(DockHeight, TaskbarFolderSize + 48), 64, 128);
     }
 
     public static bool StartupEnabled
