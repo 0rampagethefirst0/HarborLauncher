@@ -12,14 +12,16 @@ namespace Harbor;
 
 internal sealed class TopBar : Window
 {
-    const string DragFormat = "Harbor.TopDockItem";
     readonly Shell shell;
     internal readonly IntPtr MonitorHandle;
-    readonly Grid layout = new();
-    readonly Dictionary<string, StackPanel> groups = new();
+    readonly DockPlacementPanel layout;
     readonly Dictionary<string, FrameworkElement> elements = new();
-    readonly TextBlock title = Theme.Label("Desktop", 12, Theme.Muted), clock = Theme.Label("", 12), stats = Theme.Label("", 11, Theme.Muted);
+    readonly Dictionary<string, TextBlock> labels = new();
+    bool preview;
+    string activeTitle = "Desktop";
     readonly Border frame;
+    readonly Grid root = new() { Background = Brushes.Transparent, AllowDrop = true };
+    readonly Border dropOutline = new() { BorderBrush = Theme.Accent, BorderThickness = new Thickness(2), CornerRadius = new CornerRadius(5), IsHitTestVisible = false, Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
     AppBar? appbar;
     IntPtr lastExternal;
     string spec = "";
@@ -29,17 +31,18 @@ internal sealed class TopBar : Window
     {
         this.shell = shell; MonitorHandle = monitor; Title = "Harbor — top Dock"; Width = 1000; Height = shell.Config.TopBarHeight;
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; ShowInTaskbar = false; ShowActivated = false; Topmost = true; AllowsTransparency = true; Background = Brushes.Transparent;
-        layout.Margin = new Thickness(10, 0, 10, 6); layout.ColumnDefinitions.Add(new ColumnDefinition()); layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); layout.ColumnDefinitions.Add(new ColumnDefinition());
-        int column = 0; foreach (string group in new[] { "left", "center", "right" })
-        {
-            var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = group == "right" ? HorizontalAlignment.Right : HorizontalAlignment.Left, AllowDrop = true };
-            var scroll = new ScrollViewer { Content = panel, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false }; Grid.SetColumn(scroll, column++); layout.Children.Add(scroll); groups[group] = panel;
-            panel.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(DragFormat) ? DragDropEffects.Move : DragDropEffects.None; e.Handled = true; };
-            panel.Drop += (_, e) => { if (e.Data.GetData(DragFormat) is string id) { MoveButton(id, null, group); e.Handled = true; } };
-        }
-        title.TextTrimming = TextTrimming.CharacterEllipsis;
-        var root = new Grid(); frame = new Border { Background = Theme.Bg, Child = layout }; root.Children.Add(frame);
+        layout = new DockPlacementPanel(shell.Config);
+        var scroll = new ScrollViewer { Content = layout, Margin = new Thickness(10, 0, 10, 6), HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch, CanContentScroll = false };
+        frame = new Border { Background = Theme.Bg, Child = scroll }; root.Children.Add(frame);
         var arrow = Theme.Button(Theme.Glyph("\uE70D", 9), "Dock controls", () => shell.OpenTopDockControls(monitor)); arrow.Width = 30; arrow.Height = 11; arrow.MinHeight = 0; arrow.Padding = new Thickness(0); arrow.HorizontalAlignment = HorizontalAlignment.Center; arrow.VerticalAlignment = VerticalAlignment.Bottom; arrow.Background = Theme.Raised; root.Children.Add(arrow); Content = root;
+        root.Children.Add(dropOutline);
+        root.PreviewDragOver += (_, e) => {
+            if (e.Data.GetData(BarLayout.DragFormat) is not string id || !elements.ContainsKey(id)) { e.Effects = DragDropEffects.None; e.Handled = true; return; }
+            var point = e.GetPosition(layout); PreviewPlacement(id, point.X); e.Effects = DragDropEffects.Move; e.Handled = true;
+            var cursor = e.GetPosition(scroll); if (cursor.X < 28) scroll.ScrollToHorizontalOffset(scroll.HorizontalOffset - 18); else if (cursor.X > scroll.ActualWidth - 28) scroll.ScrollToHorizontalOffset(scroll.HorizontalOffset + 18);
+        };
+        root.PreviewDrop += (_, e) => { if (e.Data.GetData(BarLayout.DragFormat) is string id) { PlaceButton(id, e.GetPosition(layout).X); e.Handled = true; } };
+        root.DragLeave += (_, e) => { var p = e.GetPosition(root); if (!new Rect(root.RenderSize).Contains(p)) ClearPlacementPreview(); };
         ContextMenu = BackgroundMenu(); RefreshLayout();
         SourceInitialized += (_, _) => { Native.ToolWindow(this); appbar = new AppBar(this, monitor, 1, shell.Config.TopBarHeight, overlay: shell.Config.ReplaceTaskbar || !shell.Config.TopDockReserveSpace); Tick(); };
         Closed += (_, _) => appbar?.Dispose();
@@ -56,35 +59,39 @@ internal sealed class TopBar : Window
     FrameworkElement Make(BarItem item)
     {
         FrameworkElement element;
+        string kind = BarLayout.Component(item);
         if (item.Id.StartsWith("divider.")) element = new Border { Width = item.Space ? 20 : 1, Height = 18, VerticalAlignment = VerticalAlignment.Center, Background = item.Space ? Brushes.Transparent : Theme.Line };
         else
         {
-            UIElement content = item.Id switch {
+            UIElement content = kind switch {
                 "apps" => shell.Config.TopDockBrandText ? UiIcons.Label("Harbor", shell.Config.TopDockFontSize, "apps") : Theme.Logo(shell.Config.TopDockIconSize),
-                "title" => title, "clock" => clock, "stats" => stats,
-                _ => UiIcons.Icon(item.Id == "settings" ? "controls" : item.Id, shell.Config.TopDockIconSize)
+                "title" or "clock" or "date" or "time" or "cpu" or "memory" or "stats" or "text" => Text(),
+                "app" => Theme.AppIcon(item.Target, BarLayout.Label(item), shell.Config.TopDockIconSize),
+                _ => UiIcons.Icon(kind == "settings" ? "controls" : kind, shell.Config.TopDockIconSize)
             };
-            var button = Theme.Button(content, BarLayout.Label(item), () => { if (Environment.TickCount64 < suppressClick) return; ActivateItem(item.Id); }); button.Padding = new Thickness(shell.Config.TopDockPadding, 0, shell.Config.TopDockPadding, 0); element = button;
-            if (item.Id == "title") button.MouseDoubleClick += (_, e) => { if (shell.Tweaks.Has("title-actions") && Target() != IntPtr.Zero) { Native.ShowWindow(lastExternal, Native.IsZoomed(lastExternal) ? 9 : 3); Native.Activate(lastExternal); e.Handled = true; } };
+            var button = Theme.Button(content, BarLayout.Label(item), () => { if (Environment.TickCount64 < suppressClick) return; if (kind == "app") { if (item.Target.Length > 0) shell.Launch(item.Target); } else ActivateItem(kind); }); button.Padding = new Thickness(shell.Config.TopDockPadding, 0, shell.Config.TopDockPadding, 0); element = button;
+            if (kind == "title") button.MouseDoubleClick += (_, e) => { if (shell.Tweaks.Has("title-actions") && Target() != IntPtr.Zero) { Native.ShowWindow(lastExternal, Native.IsZoomed(lastExternal) ? 9 : 3); Native.Activate(lastExternal); e.Handled = true; } };
         }
-        element.Tag = item.Id; element.Margin = new Thickness(shell.Config.TopDockGap + (item.Id.StartsWith("divider.") ? 7 : 0), 0, shell.Config.TopDockGap + (item.Id.StartsWith("divider.") ? 7 : 0), 0);
+        if (item.Width > 0) element.Width = item.Width;
+        element.Tag = item.Id; element.AllowDrop = true; element.Margin = new Thickness(shell.Config.TopDockGap + (item.Id.StartsWith("divider.") ? 7 : 0), 0, shell.Config.TopDockGap + (item.Id.StartsWith("divider.") ? 7 : 0), 0);
         AutomationProperties.SetAutomationId(element, "top-dock:" + item.Id); element.ToolTip = BarLayout.Label(item) + " · drag to move · right-click to customize";
         var menu = new ContextMenu(); element.ContextMenu = menu; element.ContextMenuOpening += (_, _) => ItemMenu(menu, item);
-        Point origin = default;
-        element.PreviewMouseLeftButtonDown += (_, e) => origin = e.GetPosition(this);
+        Point origin = default; bool armed = false;
+        element.PreviewMouseLeftButtonDown += (_, e) => { origin = e.GetPosition(root); armed = true; };
+        element.PreviewMouseLeftButtonUp += (_, _) => armed = false;
         element.PreviewMouseMove += (_, e) => {
-            if (dragging || e.LeftButton != MouseButtonState.Pressed) return; Point p = e.GetPosition(this);
+            if (!armed || dragging || e.LeftButton != MouseButtonState.Pressed) return; Point p = e.GetPosition(root);
             if (Math.Abs(p.X - origin.X) < SystemParameters.MinimumHorizontalDragDistance && Math.Abs(p.Y - origin.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-            dragging = true; try { DragDrop.DoDragDrop(element, new DataObject(DragFormat, item.Id), DragDropEffects.Move); } finally { dragging = false; suppressClick = Environment.TickCount64 + 300; Dispatcher.BeginInvoke(new Action(RefreshLayout)); }
+            armed = false; dragging = true; suppressClick = long.MaxValue; element.ReleaseMouseCapture();
+            try { DragDrop.DoDragDrop(element, new DataObject(BarLayout.DragFormat, item.Id), DragDropEffects.Move); } finally { dragging = false; suppressClick = Environment.TickCount64 + 300; ClearPlacementPreview(); Dispatcher.BeginInvoke(new Action(RefreshLayout)); }
         };
-        element.AllowDrop = true; element.DragOver += (_, e) => { if (!e.Data.GetDataPresent(DragFormat)) return; e.Effects = DragDropEffects.Move; e.Handled = true; };
-        element.Drop += (_, e) => { if (e.Data.GetData(DragFormat) is string id) { MoveButton(id, item.Id, item.Group); e.Handled = true; } };
         return element;
+        TextBlock Text() { var text = Theme.Label("", item.FontSize > 0 ? item.FontSize : shell.Config.TopDockFontSize, kind is "title" or "stats" or "cpu" or "memory" ? Theme.Muted : null); text.TextTrimming = TextTrimming.CharacterEllipsis; if (kind == "title") text.MaxWidth = shell.Config.TopDockTitleWidth; labels[item.Id] = text; return text; }
     }
     void ActivateItem(string id)
     {
         switch (id) {
-            case "apps": shell.ToggleLauncher(MonitorHandle); break; case "clock": shell.OpenCalendar(MonitorHandle); break; case "stats": Native.Launch("taskmgr.exe"); break;
+            case "apps": shell.ToggleLauncher(MonitorHandle); break; case "clock": case "date": case "time": shell.OpenCalendar(MonitorHandle); break; case "stats": case "cpu": case "memory": Native.Launch("taskmgr.exe"); break;
             case "previous": Native.Media(0xB1); break; case "play": Native.Media(0xB3); break; case "next": Native.Media(0xB0); break;
             case "network": case "volume": shell.OpenQuick(MonitorHandle); break; case "files": shell.OpenFiles(); break; case "mods": shell.OpenMods(); break;
             case "notifications": shell.OpenNotifications(MonitorHandle); break; case "settings": shell.OpenSettings(); break;
@@ -93,9 +100,12 @@ internal sealed class TopBar : Window
     void ItemMenu(ContextMenu menu, BarItem item)
     {
         menu.Items.Clear(); menu.Items.Add(Theme.Item("Dock controls", () => shell.OpenTopDockControls(MonitorHandle)));
+        menu.Items.Add(Theme.Item("Edit piece", () => new DockPieceEditor(shell, item).Show()));
+        menu.Items.Add(Theme.Item("Duplicate", () => { BarLayout.Duplicate(shell.Config, item); Changed(); }));
         foreach (string group in new[] { "left", "center", "right" }) menu.Items.Add(Theme.Item("Move to " + group, () => { BarLayout.Move(shell.Config, item.Id, null, group); Changed(); }));
         menu.Items.Add(Theme.Item("Add divider before", () => { BarLayout.AddDivider(shell.Config, item.Group, item.Id); Changed(); })); menu.Items.Add(Theme.Item("Add space before", () => { BarLayout.AddDivider(shell.Config, item.Group, item.Id, true); Changed(); }));
         menu.Items.Add(Theme.Item(item.Id.StartsWith("divider.") ? "Remove divider" : "Hide button", () => { if (item.Id.StartsWith("divider.")) shell.Config.TopDockItems.Remove(item); else BarLayout.Enable(shell.Config, item, false); Changed(); }));
+        if (item.Id.StartsWith("part.")) menu.Items.Add(Theme.Item("Remove piece", () => { shell.Config.TopDockItems.Remove(item); Changed(); }));
         if (item.Id == "title" && shell.Tweaks.Has("title-actions") && Target() != IntPtr.Zero)
         {
             var h = lastExternal; menu.Items.Add(new Separator()); menu.Items.Add(Theme.Item("Minimize window", () => Native.ShowWindow(h, 6))); menu.Items.Add(Theme.Item(Native.IsZoomed(h) ? "Restore window" : "Maximize window", () => { Native.ShowWindow(h, Native.IsZoomed(h) ? 9 : 3); Native.Activate(h); }));
@@ -105,31 +115,45 @@ internal sealed class TopBar : Window
     }
     void Changed() { shell.Config.Save(); shell.ApplyTopDockPreferences(); }
     internal void MoveButton(string id, string? before, string group) { BarLayout.Move(shell.Config, id, before, group); Changed(); }
+    internal bool PlaceButton(string id, double center) { bool placed = layout.Place(id, center); ClearPlacementPreview(); if (placed) Changed(); return placed; }
+    internal void PreviewPlacement(string id, double center)
+    {
+        if (!double.IsFinite(center) || layout.UsableWidth <= 0 || !elements.ContainsKey(id)) return;
+        layout.Preview(id, Math.Clamp(center / layout.UsableWidth, 0, 1));
+        var slot = layout.Slots.First(s => s.Id == id); var origin = layout.TranslatePoint(new Point(slot.Left, 1), root);
+        dropOutline.Width = slot.Width; dropOutline.Height = Math.Max(1, layout.ActualHeight - 2); dropOutline.Margin = new Thickness(Math.Max(0, origin.X), origin.Y, 0, 0); dropOutline.Visibility = Visibility.Visible;
+    }
+    internal void ClearPlacementPreview() { layout.Preview(null, null); dropOutline.Visibility = Visibility.Collapsed; }
+    internal DockPlacementPanel PlacementPanel => layout;
+    internal Grid PlacementSurface => root;
     internal void RefreshLayout()
     {
         if (dragging || IsMouseCaptureWithin || IsMouseOver && Mouse.LeftButton == MouseButtonState.Pressed || ContextMenu?.IsOpen == true || elements.Values.Any(e => e.ContextMenu?.IsOpen == true)) return;
-        var c = shell.Config; string next = string.Join("|", c.TopDockItems.Select(i => i.Id + i.Group + i.Enabled + i.Space + BarLayout.Legacy(c, i.Id))) + $"/{c.TopDockFontSize}/{c.TopDockIconSize}/{c.TopDockPadding}/{c.TopDockGap}/{c.TopDockBrandText}";
+        var c = shell.Config; string next = string.Join("|", c.TopDockItems.Select(i => i.Id + i.Group + i.Enabled + i.Space + i.Kind + i.Name + i.Text + i.Format + i.TimeZone + i.Target + i.Width + i.FontSize + BarLayout.Legacy(c, BarLayout.Component(i)))) + $"/{c.TopDockFontSize}/{c.TopDockIconSize}/{c.TopDockPadding}/{c.TopDockGap}/{c.TopDockBrandText}/{c.TopDockTitleWidth}";
         if (next != spec) {
             foreach (var old in elements.Values.OfType<ContentControl>()) old.Content = null;
-            foreach (var panel in groups.Values) panel.Children.Clear(); elements.Clear();
-            foreach (var item in c.TopDockItems.Where(i => i.Enabled && BarLayout.Legacy(c, i.Id))) { var element = Make(item); elements[item.Id] = element; groups[item.Group].Children.Add(element); } spec = next;
+            layout.Children.Clear(); elements.Clear(); labels.Clear();
+            foreach (var item in c.TopDockItems.Where(i => i.Enabled && BarLayout.Legacy(c, BarLayout.Component(i)))) { var element = Make(item); elements[item.Id] = element; layout.Children.Add(element); } spec = next;
         }
-        title.FontSize = clock.FontSize = c.TopDockFontSize; stats.FontSize = Math.Max(10, c.TopDockFontSize - 1); title.MaxWidth = c.TopDockTitleWidth;
+        layout.InvalidateArrange();
+        UpdateLabels();
         Height = c.TopBarHeight; Topmost = c.TopDockOnTop; Opacity = c.TopDockOpacity; frame.CornerRadius = new CornerRadius(c.TopDockRadius); frame.BorderBrush = Theme.Line; frame.BorderThickness = c.TopDockShowBorder ? new Thickness(0, 0, 0, 1) : new Thickness(0); appbar?.Configure(c.TopBarHeight);
     }
     internal void Tick()
     {
         RefreshLayout(); var c = shell.Config;
-        string format = c.Use24HourClock ? c.TopDockSeconds ? "ddd, MMM d   HH:mm:ss" : "ddd, MMM d   HH:mm" : c.TopDockSeconds ? "ddd, MMM d   h:mm:ss tt" : "ddd, MMM d   h:mm tt";
-        if (shell.Tweaks.Module("clock-seconds") is { } custom) format = shell.Mods.Value(custom, "format", format);
-        try { clock.Text = DateTime.Now.ToString(format); } catch (FormatException) { clock.Text = DateTime.Now.ToString("HH:mm:ss"); }
-        stats.Text = $"CPU {shell.CpuUsage:0}%  RAM {shell.MemoryUsage}%";
         var h = Native.GetForegroundWindow(); Native.GetWindowThreadProcessId(h, out uint pid);
-        if (pid != Environment.ProcessId) { title.Text = string.IsNullOrWhiteSpace(Native.Title(h)) ? "Desktop" : Native.Title(h); if (shell.Tracker.Windows.Any(w => w.Handle == h)) lastExternal = h; }
+        if (pid != Environment.ProcessId) { activeTitle = string.IsNullOrWhiteSpace(Native.Title(h)) ? "Desktop" : Native.Title(h); if (shell.Tracker.Windows.Any(w => w.Handle == h)) lastExternal = h; }
+        UpdateLabels();
         SetFullscreen(shell.HideBars(MonitorHandle));
     }
     IntPtr Target() { Native.GetWindowThreadProcessId(lastExternal, out uint pid); return Native.IsWindow(lastExternal) && !shell.Games.IsGame(Native.ProcessPath(pid)) ? lastExternal : IntPtr.Zero; }
-    internal void PreparePreview() { RefreshLayout(); clock.Text = DateTime.Now.ToString(shell.Config.Use24HourClock ? "ddd, MMM d   HH:mm" : "ddd, MMM d   h:mm tt"); stats.Text = "CPU 24%  RAM 42%"; title.Text = "Projects — Harbor Files"; }
+    void UpdateLabels()
+    {
+        var mod = shell.Tweaks.Module("clock-seconds");
+        foreach (var item in shell.Config.TopDockItems) if (labels.TryGetValue(item.Id, out var text)) text.Text = DockPieceText.Render(item, shell.Config, preview ? "Projects — Harbor Files" : activeTitle, preview ? 24 : shell.CpuUsage, preview ? 42 : shell.MemoryUsage, mod != null, mod == null ? null : shell.Mods.Value(mod, "format", "ddd, MMM d   h:mm:ss tt"));
+    }
+    internal void PreparePreview() { preview = true; RefreshLayout(); }
     internal void SetFullscreen(bool hide)
     {
         bool primary = System.Windows.Forms.Screen.PrimaryScreen!.Bounds.Contains(Native.Monitor(MonitorHandle).Monitor.Left + 1, Native.Monitor(MonitorHandle).Monitor.Top + 1);

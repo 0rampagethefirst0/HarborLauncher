@@ -17,7 +17,7 @@ using System.Windows.Controls.Primitives;
 
 namespace Harbor;
 
-internal sealed class Files : Window
+internal sealed partial class Files : Window
 {
     readonly Shell shell;
     readonly List<FileTab> tabs = new();
@@ -28,6 +28,9 @@ internal sealed class Files : Window
     readonly TextBlock heading = Theme.Label("", 25), summary = Theme.Label("", 12, Theme.Muted), status = Theme.Label("", 12, Theme.Muted);
     readonly Border empty = new(), previewFrame;
     readonly Grid contentGrid = new();
+    readonly StackPanel fileActions = new() { Orientation = Orientation.Horizontal };
+    readonly ComboBox sortSelector;
+    readonly Button sortDirection;
     readonly ColumnDefinition previewColumn = new() { Width = new GridLength(280) };
     readonly ProgressBar progress = new() { Height = 3, IsIndeterminate = true, Visibility = Visibility.Collapsed };
     readonly DispatcherTimer watcherDelay = new() { Interval = TimeSpan.FromMilliseconds(400) }, searchDelay = new() { Interval = TimeSpan.FromMilliseconds(150) };
@@ -53,7 +56,7 @@ internal sealed class Files : Window
         search.ToolTip = "Search this folder"; search.Margin = new Thickness(12, 0, 0, 0); AutomationProperties.SetName(search, "Search this folder"); var searchBox = Theme.Placeholder(search, "Search this folder"); DockPanel.SetDock(searchBox, System.Windows.Controls.Dock.Right); nav.Children.Add(searchBox);
         var location = new Grid { Margin = new Thickness(10, 0, 0, 0) }; address.MinHeight = 35; address.Visibility = Visibility.Collapsed; AutomationProperties.SetName(address, "Folder path"); address.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Load(address.Text); e.Handled = true; } if (e.Key == Key.Escape) SetAddressMode(false); };
         var crumbScroll = new ScrollViewer { Content = breadcrumbs, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; location.Children.Add(crumbScroll); location.Children.Add(address); location.MouseLeftButtonDown += (_, e) => { if (e.ClickCount == 2) SetAddressMode(true); }; nav.Children.Add(location); DockPanel.SetDock(nav, System.Windows.Controls.Dock.Top); root.Children.Add(nav);
-        var tools = new DockPanel { Margin = new Thickness(18, 0, 18, 12) }; var actions = new StackPanel { Orientation = Orientation.Horizontal };
+        var tools = new DockPanel { Margin = new Thickness(18, 0, 18, 12) }; var actions = fileActions;
         actions.Children.Add(ActionButton("folder", "New folder", NewFolder)); actions.Children.Add(IconButton("copy", "Copy", () => Copy(false))); actions.Children.Add(IconButton("cut", "Cut", () => Copy(true))); pasteButton = IconButton("copy", "Paste", Paste); actions.Children.Add(pasteButton); actions.Children.Add(IconButton("typing", "Rename", Rename)); actions.Children.Add(IconButton("trash", "Recycle selected items", Recycle)); tools.Children.Add(actions);
         var views = new StackPanel { Orientation = Orientation.Horizontal }; DockPanel.SetDock(views, System.Windows.Controls.Dock.Right);
         views.Children.Add(IconButton("apps", "Grid view", () => SetView("grid"))); views.Children.Add(IconButton("file", "Details view", () => SetView("details"))); views.Children.Add(IconButton("window", "Toggle preview pane", () => { shell.Config.FilesPreview = !shell.Config.FilesPreview; SavePreferences(); ShowPreviewPane(); }));
@@ -62,7 +65,7 @@ internal sealed class Files : Window
         contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(205) }); contentGrid.ColumnDefinitions.Add(new ColumnDefinition()); contentGrid.ColumnDefinitions.Add(previewColumn);
         var sidebarFrame = new Border { Background = Theme.Panel, BorderBrush = Theme.Line, BorderThickness = new Thickness(0, 0, 1, 0), Padding = new Thickness(10), Child = new ScrollViewer { Content = sidebar, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } }; contentGrid.Children.Add(sidebarFrame);
         var center = new DockPanel { Margin = new Thickness(20, 2, 15, 0) }; Grid.SetColumn(center, 1);
-        var intro = new DockPanel { Margin = new Thickness(0, 0, 0, 15) }; var sortBox = new ComboBox { ItemsSource = new[] { "Name", "Modified", "Type", "Size" }, SelectedItem = sort, Width = 125, Height = 34, VerticalAlignment = VerticalAlignment.Center }; AutomationProperties.SetName(sortBox, "Sort files by"); sortBox.SelectionChanged += (_, _) => { sort = sortBox.SelectedItem as string ?? "Name"; Filter(); }; var direction = IconButton("down", "Reverse sort order", () => { descending = !descending; Filter(); }); DockPanel.SetDock(direction, System.Windows.Controls.Dock.Right); intro.Children.Add(direction); DockPanel.SetDock(sortBox, System.Windows.Controls.Dock.Right); intro.Children.Add(sortBox); var words = new StackPanel(); words.Children.Add(heading); words.Children.Add(summary); intro.Children.Add(words); DockPanel.SetDock(intro, System.Windows.Controls.Dock.Top); center.Children.Add(intro);
+        var intro = new DockPanel { Margin = new Thickness(0, 0, 0, 15) }; var sortBox = sortSelector = new ComboBox { ItemsSource = new[] { "Name", "Modified", "Type", "Size" }, SelectedItem = sort, Width = 125, Height = 34, VerticalAlignment = VerticalAlignment.Center }; AutomationProperties.SetName(sortBox, "Sort files by"); sortBox.SelectionChanged += (_, _) => { sort = sortBox.SelectedItem as string ?? "Name"; Filter(); }; var direction = sortDirection = IconButton("down", "Reverse sort order", () => { descending = !descending; Filter(); }); DockPanel.SetDock(direction, System.Windows.Controls.Dock.Right); intro.Children.Add(direction); DockPanel.SetDock(sortBox, System.Windows.Controls.Dock.Right); intro.Children.Add(sortBox); var words = new StackPanel(); words.Children.Add(heading); words.Children.Add(summary); intro.Children.Add(words); DockPanel.SetDock(intro, System.Windows.Controls.Dock.Top); center.Children.Add(intro);
         var listing = new Grid(); list.Style = Application.Current.TryFindResource(typeof(ListBox)) as Style; VirtualizingPanel.SetIsVirtualizing(list, true); VirtualizingPanel.SetVirtualizationMode(list, VirtualizationMode.Recycling); listing.Children.Add(list);
         var noFiles = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }; noFiles.Children.Add(UiIcons.Icon("folder", 52)); noFiles.Children.Add(Theme.Label("Nothing here yet", 22)); noFiles.Children.Add(Theme.Label("Create a folder or paste some files to get started.", 12, Theme.Muted)); empty.Child = noFiles; empty.IsHitTestVisible = false; listing.Children.Add(empty); center.Children.Add(listing); contentGrid.Children.Add(center);
         previewFrame = new Border { Background = Theme.Panel, BorderBrush = Theme.Line, BorderThickness = new Thickness(1, 0, 0, 0), Padding = new Thickness(18), Child = new ScrollViewer { Content = preview, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } }; Grid.SetColumn(previewFrame, 2); contentGrid.Children.Add(previewFrame); root.Children.Add(contentGrid); Content = root;
@@ -71,34 +74,36 @@ internal sealed class Files : Window
         list.PreviewMouseRightButtonDown += (_, e) => { var entry = EntryAt(e.OriginalSource as DependencyObject); if (entry != null && !list.SelectedItems.Contains(entry)) list.SelectedItem = entry; };
         list.ContextMenu = new ContextMenu(); list.ContextMenuOpening += (_, _) => BuildMenu(list.ContextMenu);
         list.PreviewMouseLeftButtonDown += (_, e) => dragOrigin = e.GetPosition(list);
-        list.MouseMove += (_, e) => { if (e.LeftButton != MouseButtonState.Pressed || busy || (e.GetPosition(list) - dragOrigin).Length < 6 || list.SelectedItems.Count == 0) return; var paths = SelectedPaths(); DragDrop.DoDragDrop(list, new DataObject(DataFormats.FileDrop, paths), DragDropEffects.Copy); };
+        list.MouseMove += (_, e) => { if (e.LeftButton != MouseButtonState.Pressed || busy || (e.GetPosition(list) - dragOrigin).Length < 6 || list.SelectedItems.Count == 0) return; var paths = SelectedPaths(); var data = new DataObject(DataFormats.FileDrop, paths); var shortcut = TaskbarFolders.Shortcuts(data).FirstOrDefault(); if (shortcut != null && paths.Length == 1) data.SetData(TaskbarFolders.DragFormat, System.Text.Json.JsonSerializer.Serialize(shortcut)); DragDrop.DoDragDrop(list, data, DragDropEffects.Copy | DragDropEffects.Link | DragDropEffects.Move); };
         list.AllowDrop = true; list.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) && !busy ? e.KeyStates.HasFlag(DragDropKeyStates.ShiftKey) ? DragDropEffects.Move : DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
         list.Drop += (_, e) => { if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths || busy) return; var target = EntryAt(e.OriginalSource as DependencyObject); Transfer(paths, target?.Folder == true ? target.Path : CurrentFolder, e.KeyStates.HasFlag(DragDropKeyStates.ShiftKey)); e.Handled = true; };
         search.TextChanged += (_, _) => { if (syncing) return; active.Search = search.Text; searchDelay.Stop(); searchDelay.Start(); }; searchDelay.Tick += (_, _) => { searchDelay.Stop(); Filter(); };
         watcherDelay.Tick += (_, _) => { watcherDelay.Stop(); if (!busy) Load(CurrentFolder, false); };
-        Closed += (_, _) => { closing = true; generation++; previewGeneration++; watcher?.Dispose(); watcherDelay.Stop(); searchDelay.Stop(); };
-        PreviewKeyDown += Keys; RenderSidebar(); ConfigureView(); ShowPreviewPane(); Load(initial ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        Closed += (_, _) => { closing = true; generation++; previewGeneration++; watcher?.Dispose(); watcherDelay.Stop(); searchDelay.Stop(); shell.ShortcutsChanged -= SyncAppFolderTabs; };
+        PreviewKeyDown += Keys; RenderSidebar(); ConfigureView(); ShowPreviewPane(); Load(initial ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)); InitializeAppFolders();
     }
     static Button IconButton(string icon, string title, Action click) { var b = Theme.Button(UiIcons.Icon(icon), title, click); b.Padding = new Thickness(9); return b; }
     static Button ActionButton(string icon, string title, Action click) => Theme.Button(UiIcons.Label(title, 12, icon), title, click);
     void SavePreferences() { try { shell.Config.Save(); } catch (Exception ex) { status.Text = ex.Message; } }
-    internal void NewTab(string? target = null) { if (tabs.Count >= 24) { status.Text = "Close a tab before adding another."; return; } active = new FileTab(""); tabs.Add(active); syncing = true; search.Clear(); syncing = false; Load(target is { Length: > 0 } ? target : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)); }
+    internal void NewTab(string? target = null) { if (target != null && TaskbarFolders.IsFolder(target)) target = null; if (tabs.Count(t => !TaskbarFolders.IsFolder(t.Folder)) >= 24) { status.Text = "Close a tab before adding another."; return; } active = new FileTab(""); tabs.Add(active); syncing = true; search.Clear(); syncing = false; Load(target is { Length: > 0 } ? target : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)); }
     void SelectTab(FileTab tab) { active = tab; syncing = true; search.Text = tab.Search; syncing = false; page = 0; Load(tab.Folder, false); }
-    void CloseTab(FileTab tab) { if (tabs.Count == 1) { Close(); return; } int index = tabs.IndexOf(tab); tabs.Remove(tab); if (active == tab) SelectTab(tabs[Math.Min(index, tabs.Count - 1)]); else RenderTabs(); }
+    void CloseTab(FileTab tab) { if (TaskbarFolders.IsFolder(tab.Folder)) closedFolderTabs.Add(tab.Folder); if (tabs.Count == 1) { Close(); return; } int index = tabs.IndexOf(tab); tabs.Remove(tab); if (active == tab) SelectTab(tabs[Math.Min(index, tabs.Count - 1)]); else RenderTabs(); }
     void RenderTabs()
     {
-        tabStrip.Children.Clear(); foreach (var tab in tabs) { var row = new DockPanel { Background = tab == active ? Theme.Raised : Theme.Panel, Margin = new Thickness(4, 3, 0, 3) }; var close = IconButton("close", "Close " + tab.Name + " tab", () => CloseTab(tab)); close.Padding = new Thickness(5); DockPanel.SetDock(close, System.Windows.Controls.Dock.Right); row.Children.Add(close); var button = Theme.Button(UiIcons.Label(tab.Name.Length > 22 ? tab.Name[..22] + "…" : tab.Name, 12, "folder"), tab.Folder, () => SelectTab(tab)); button.MinWidth = 135; row.Children.Add(button); tabStrip.Children.Add(row); }
+        tabStrip.Children.Clear(); foreach (var tab in tabs) { var row = new DockPanel { Background = tab == active ? Theme.Raised : Theme.Panel, Margin = new Thickness(4, 3, 0, 3) }; var close = IconButton("close", "Close " + tab.Name + " tab", () => CloseTab(tab)); close.Padding = new Thickness(5); DockPanel.SetDock(close, System.Windows.Controls.Dock.Right); row.Children.Add(close); var button = Theme.Button(UiIcons.Label(tab.Name.Length > 22 ? tab.Name[..22] + "…" : tab.Name, 12, "folder"), tab.Name, () => SelectTab(tab)); button.MinWidth = 135; row.Children.Add(button); BindFolderTab(row, button, tab); tabStrip.Children.Add(row); }
     }
     void RenderSidebar()
     {
         sidebar.Children.Clear(); Section("QUICK ACCESS"); Shortcut("Home", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "profiles"); Shortcut("Desktop", Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "window"); Shortcut("Downloads", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"), "down"); Shortcut("Documents", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "file"); Shortcut("Pictures", Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "image"); Shortcut("Music", Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "audio"); Shortcut("Videos", Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "video");
         if (shell.Config.FileFavorites.Count > 0) { Section("PINNED FOLDERS"); foreach (string path in shell.Config.FileFavorites.ToArray()) { var b = Shortcut(Path.GetFileName(path.TrimEnd('\\')), path, "pin"); var menu = new ContextMenu(); menu.Items.Add(Theme.Item("Unpin folder", () => { shell.Config.FileFavorites.Remove(path); SavePreferences(); RenderSidebar(); })); b.ContextMenu = menu; } }
+        RenderAppFolderSidebar();
         Section("THIS PC"); foreach (var drive in DriveInfo.GetDrives()) { string title; try { title = drive.IsReady && drive.VolumeLabel.Length > 0 ? drive.VolumeLabel + " (" + drive.Name.TrimEnd('\\') + ")" : drive.Name; } catch { title = drive.Name; } Shortcut(title, drive.Name, "storage"); }
         void Section(string name) { var label = Theme.Label(name, 9, Theme.Muted); label.Margin = new Thickness(10, 20, 0, 9); sidebar.Children.Add(label); }
         Button Shortcut(string name, string path, string icon) { var b = ActionButton(icon, name, () => Load(path)); b.HorizontalContentAlignment = HorizontalAlignment.Left; b.Padding = new Thickness(10, 9, 4, 9); sidebar.Children.Add(b); return b; }
     }
     void RenderLocation()
     {
+        if (CurrentAppFolder is { } appFolder) { breadcrumbs.Children.Clear(); breadcrumbs.Children.Add(Theme.Button("App folders", "App folders", () => { })); breadcrumbs.Children.Add(UiIcons.Icon("right", 10)); breadcrumbs.Children.Add(Theme.Label(appFolder.Name, 12)); address.Text = CurrentFolder; return; }
         breadcrumbs.Children.Clear(); string root = Path.GetPathRoot(CurrentFolder) ?? ""; string path = root;
         if (root.Length > 0) Crumb(root, root);
         foreach (string part in CurrentFolder[root.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)) { path = Path.Combine(path, part); Crumb(part, path); }
@@ -109,7 +114,7 @@ internal sealed class Files : Window
     internal void Load(string target, bool history = true) => _ = NavigateAsync(target, history);
     internal async Task NavigateAsync(string target, bool history = true)
     {
-        if (closing) return; int current = ++generation; var tab = active;
+        if (closing) return; if (NavigateAppFolder(target, history)) return; int current = ++generation; var tab = active;
         try {
             target = Path.GetFullPath(Environment.ExpandEnvironmentVariables(target.Trim('"', ' '))); if (!Directory.Exists(target)) throw new DirectoryNotFoundException("This folder is not available."); status.Text = "Opening folder…";
             bool hidden = shell.Config.FilesShowHidden; string destination = target;
@@ -148,6 +153,7 @@ internal sealed class Files : Window
     }
     void Filter(bool reset = true)
     {
+        if (CurrentAppFolder != null) { RenderAppFolderPage(); return; }
         if (reset) page = 0; var selected = list.SelectedItems.OfType<FileEntry>().Select(f => f.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
         filtered = FileBrowserState.Query(active.Entries, active.Search, sort, descending); bool grid = shell.Config.FilesView == "grid"; int pages = Math.Max(1, (filtered.Count + 199) / 200); page = Math.Clamp(page, 0, pages - 1);
         list.ItemsSource = grid ? filtered.Skip(page * 200).Take(200).ToList() : filtered; foreach (var file in list.Items.OfType<FileEntry>()) if (selected.Contains(file.Path)) list.SelectedItems.Add(file);
@@ -158,6 +164,7 @@ internal sealed class Files : Window
     void ShowPreviewPane() { previewFrame.Visibility = shell.Config.FilesPreview ? Visibility.Visible : Visibility.Collapsed; previewColumn.Width = new GridLength(shell.Config.FilesPreview ? 280 : 0); _ = PreviewSelection(); }
     async Task PreviewSelection()
     {
+        if (CurrentAppFolder != null) { RenderFolderAppPreview(); return; }
         int version = ++previewGeneration; preview.Children.Clear(); if (!shell.Config.FilesPreview) return; preview.Children.Add(Theme.Label("PREVIEW", 10, Theme.Muted));
         if (list.SelectedItems.Count != 1 || list.SelectedItem is not FileEntry entry) { var text = Theme.Label(list.SelectedItems.Count > 1 ? list.SelectedItems.Count + " items selected" : "Select a file", 21); text.Margin = new Thickness(0, 30, 0, 12); preview.Children.Add(text); preview.Children.Add(new TextBlock { Text = "Images and text files can be read here without opening another app.", TextWrapping = TextWrapping.Wrap, Foreground = Theme.Muted, FontSize = 12 }); return; }
         var icon = (FrameworkElement)new FileIconConverter(56).Convert(entry, typeof(FrameworkElement), null!, System.Globalization.CultureInfo.InvariantCulture); icon.Margin = new Thickness(0, 25, 0, 15); icon.HorizontalAlignment = HorizontalAlignment.Left; preview.Children.Add(icon);
@@ -183,8 +190,8 @@ internal sealed class Files : Window
     void Open(FileEntry entry) { if (entry.Folder) Load(entry.Path); else shell.Launch(entry.Path); }
     void Back() { if (active.Previous() is string target) Load(target, false); }
     void Forward() { if (active.Next() is string target) Load(target, false); }
-    void Up() { var parent = Directory.GetParent(CurrentFolder); if (parent != null) Load(parent.FullName); }
-    void PinFolder() { if (!shell.Config.FileFavorites.Contains(CurrentFolder, StringComparer.OrdinalIgnoreCase)) shell.Config.FileFavorites.Add(CurrentFolder); SavePreferences(); RenderSidebar(); }
+    void Up() { if (CurrentAppFolder != null) { Load(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)); return; } var parent = Directory.GetParent(CurrentFolder); if (parent != null) Load(parent.FullName); }
+    void PinFolder() { if (CurrentAppFolder != null) { status.Text = "App folders are already in the sidebar."; return; } if (!shell.Config.FileFavorites.Contains(CurrentFolder, StringComparer.OrdinalIgnoreCase)) shell.Config.FileFavorites.Add(CurrentFolder); SavePreferences(); RenderSidebar(); }
     void BuildMenu(ContextMenu menu)
     {
         menu.Items.Clear(); var item = list.SelectedItem as FileEntry;
@@ -193,18 +200,21 @@ internal sealed class Files : Window
     }
     void Copy(bool move)
     {
+        if (CurrentAppFolder != null) { status.Text = "Drag shortcuts to move them between folders or onto the taskbar."; return; }
         var paths = SelectedPaths(); if (paths.Length == 0) return;
         try { var data = new DataObject(); data.SetData(DataFormats.FileDrop, paths); data.SetData("Preferred DropEffect", new MemoryStream(BitConverter.GetBytes(move ? 2 : 1))); Clipboard.SetDataObject(data, true); cut = move; clipboardSequence = Native.GetClipboardSequenceNumber(); status.Text = move ? "Ready to move" : "Copied"; } catch (Exception ex) { status.Text = ex.Message; }
     }
     void Paste()
     {
+        if (CurrentAppFolder is { } folder) { if (Clipboard.GetDataObject() is { } data) { foreach (var pin in TaskbarFolders.Shortcuts(data)) TaskbarFolders.Add(shell.Config, folder, pin); shell.SaveShortcuts(); } return; }
         if (busy) return; try { if (!Clipboard.ContainsFileDropList()) return; var sources = Clipboard.GetFileDropList().Cast<string>().ToArray(); bool move = cut && clipboardSequence == Native.GetClipboardSequenceNumber(); if (!move && Clipboard.GetData("Preferred DropEffect") is MemoryStream effect && effect.Length >= 4) move = BitConverter.ToInt32(effect.ToArray(), 0) == 2; Transfer(sources, CurrentFolder, move); } catch (Exception ex) { status.Text = ex.Message; }
     }
     void Transfer(string[] sources, string destination, bool move) => Work(() => { int count = 0; foreach (string source in sources) { if (cancel) break; string path = FileTools.Unique(destination, Path.GetFileName(source.TrimEnd('\\'))); FileTools.Transfer(source, path, move); count++; int done = count; Dispatcher.BeginInvoke(new Action(() => { if (!closing) status.Text = (move ? "Moved " : "Copied ") + done + " / " + sources.Length; })); } }, () => cut = false);
-    void NewFolder() { if (busy) return; string? name = NameDialog.Ask(this, "New folder", "New folder"); if (name != null) { string path = FileTools.Unique(CurrentFolder, name); Work(() => Directory.CreateDirectory(path)); } }
-    void Rename() { if (busy || list.SelectedItems.Count != 1 || list.SelectedItem is not FileEntry entry) return; string? name = NameDialog.Ask(this, "Rename", entry.Name); if (name == null || name == entry.Name) return; string target = Path.Combine(Path.GetDirectoryName(entry.Path)!, name); Work(() => FileTools.Transfer(entry.Path, target, true)); }
+    void NewFolder() { if (CurrentAppFolder != null) { NewAppFolder(); return; } if (busy) return; string? name = NameDialog.Ask(this, "New folder", "New folder"); if (name != null) { string path = FileTools.Unique(CurrentFolder, name); Work(() => Directory.CreateDirectory(path)); } }
+    void Rename() { if (CurrentAppFolder is { } folder) { FolderUi.Rename(shell, folder, this); return; } if (busy || list.SelectedItems.Count != 1 || list.SelectedItem is not FileEntry entry) return; string? name = NameDialog.Ask(this, "Rename", entry.Name); if (name == null || name == entry.Name) return; string target = Path.Combine(Path.GetDirectoryName(entry.Path)!, name); Work(() => FileTools.Transfer(entry.Path, target, true)); }
     void Recycle()
     {
+        if (CurrentAppFolder is { } folder) { if (selectedFolderApp != null) { folder.Apps.RemoveAll(p => p.Path.Equals(selectedFolderApp.Path, StringComparison.OrdinalIgnoreCase)); selectedFolderApp = null; shell.SaveShortcuts(); } return; }
         if (busy) return; var selected = list.SelectedItems.OfType<FileEntry>().ToArray(); if (selected.Length == 0 || !NameDialog.Confirm(this, "Move to Recycle Bin", "Move " + selected.Length + " selected items to the Recycle Bin?")) return;
         Work(() => { foreach (var item in selected) { if (cancel) break; if (item.Folder) FileSystem.DeleteDirectory(Path.GetFullPath(item.Path), UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin); else FileSystem.DeleteFile(Path.GetFullPath(item.Path), UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin); } });
     }

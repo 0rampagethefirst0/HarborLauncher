@@ -18,7 +18,7 @@ internal static class ShellUiVerification
     internal static void Run(string directory, Action<string, bool, object?> check)
     {
         var c = new Settings { ModsInitialized = true, ShowClock = false, ShowMedia = false }; c.Normalize();
-        check("Dock layout migration preserves existing clock and media choices", c.TopDockItems.Count(i => BarLayout.Labels.ContainsKey(i.Id)) == 13 && c.TopDockItems.Where(i => i.Id is "clock" or "previous" or "play" or "next").All(i => !i.Enabled), null);
+        check("Dock layout migration preserves existing clock and media choices", c.TopDockItems.Count(i => BarLayout.Labels.ContainsKey(i.Id)) == 15 && c.TopDockItems.Where(i => i.Id is "clock" or "date" or "time" or "previous" or "play" or "next").All(i => !i.Enabled), null);
         BarLayout.Move(c, "files", "apps", "left");
         check("Dock buttons move across groups without duplicating", c.TopDockItems[0].Id == "files" && c.TopDockItems[0].Group == "left" && c.TopDockItems.Count(i => i.Id == "files") == 1, null);
         var divider = BarLayout.AddDivider(c, "left", "apps"); var space = BarLayout.AddDivider(c, "center", space: true);
@@ -41,6 +41,8 @@ internal static class ShellUiVerification
         check("Desktop profiles include Dock layout and taskbar dividers", imported.Appearance.ContainsKey("TopDockItems") && imported.Appearance.ContainsKey("TaskbarDividers"), null);
         string before = File.ReadAllText(Settings.FilePath); var controls = new TopDockControls(model, model.CurrentMonitor()); controls.PreparePreview("Style"); controls.PreparePreview("Behavior"); controls.Close();
         check("Opening Dock controls does not save or change settings", File.ReadAllText(Settings.FilePath) == before, null);
+        DockPlacementVerification.Run(check);
+        AppFolderVerification.Run(check);
         var a = new FileTab(@"C:\Alpha"); var b = new FileTab(@"C:\Beta"); a.Visit(@"C:\Alpha\Child", true); b.Search = "notes";
         check("File tabs keep their own history and search", a.Previous() == @"C:\Alpha" && b.Back.Count == 0 && b.Search == "notes", null);
         var entries = new[] { new FileEntry("b", "beta.txt", false, 90, DateTime.Today), new FileEntry("folder", "Zulu", true, 0, DateTime.Today), new FileEntry("a", "alpha.txt", false, 10, DateTime.Today) };

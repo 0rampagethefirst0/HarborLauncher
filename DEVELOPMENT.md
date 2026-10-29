@@ -62,3 +62,14 @@ Seven additional checks cover all 72 resource dimensions, calculator output, rea
 `Files.cs` now uses `FileTab` state, a virtualized details presenter, paged icon cards and an asynchronous preview pane. File commands preserve the existing clipboard/recycle behavior, support drag/drop, and reject self-transfers or existing destinations. Operation errors remain visible. `ShellUiVerification.cs` adds 23 checks covering migration, reorder/save, profile data, monitor-space choices, tabs, sort/search, file transfers, actual directory loading and text previews. Total: 139 native checks. Visual checks render 27 surfaces, including all Dock control pages, both Files views, and an optimized movie frame.
 
 Previews have 96 frames at 30 FPS, with elapsed-time playback and one active movie. Palette optimization shrinks the film library from about 46 MB to 9 MB. The players stop on focus loss and respect motion preferences. Physical drag interaction and live frame timing remain unverified because the Computer Use connection is unavailable.
+
+
+## 0.7 dynamic Dock pieces and shared app folders
+
+DockPlacement.cs replaces narrow drop zones with a full-width panel and a visible landing outline. Positions are stored as fractions of available width; collision handling keeps icons on screen, and overflow scrolls. A drop commits the visible positions, while cancellation leaves preferences unchanged. The suite covers 630 placements across widths and edges. Legacy groups remain available as alignment shortcuts.
+
+Date and Time migrate out of the combined Clock without enabling hidden controls. BarItem stores the component, custom text/format, time zone, target, width, text size, and free position. DockPieceEditor supports independent duplicates. Desktop profiles include the layout schema version and piece data. Existing clicks, media actions, per-monitor hiding, software rendering and recovery remain in place.
+
+TaskbarFolders stores named virtual folders and app shortcuts in settings. Center drops create/add to folders; edge drops reorder shortcuts. FolderUi and AppFolderPopup show mosaic icons and app actions. Shared changes update the taskbars and Files tabs immediately. Files.AppFolders adds live folder tabs, sidebar entries, app picking, reordering and cross-folder moves. Disk copy/recycle controls are hidden in app folders. Ungrouping restores the member shortcuts. Normalization preserves the existing Pins list object and app targets.
+
+Native verification: 169 passing checks. Visual review: 32 offscreen surfaces, with unchanged live settings. Computer Use confirmed placing Play between Date and Time in the isolated real-control fixture; the user stopped Computer Use with Escape before the physical folder drag test. No further computer-control actions were taken. Folder flows are covered by native action/model/view checks, with physical folder dragging still unverified.

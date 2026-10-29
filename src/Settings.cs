@@ -43,6 +43,9 @@ public sealed class Settings
     public int TopDockTitleWidth { get; set; } = 260;
     public double TopDockOpacity { get; set; } = 1;
     public List<BarItem> TopDockItems { get; set; } = new();
+    public int TopDockLayoutVersion { get; set; }
+    public List<AppFolder> AppFolders { get; set; } = new();
+    public List<string> AppFolderTabOrder { get; set; } = new();
     public List<TaskbarDivider> TaskbarDividers { get; set; } = new();
     public int PreviewFramesPerSecond { get; set; } = 30;
     public string FilesView { get; set; } = "details";
@@ -130,6 +133,7 @@ public sealed class Settings
         if (FilesView is not "details" and not "grid") FilesView = "details";
         FileFavorites ??= new(); FileFavorites = FileFavorites.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase).Take(40).ToList();
         BarLayout.Normalize(this);
+        TaskbarFolders.Normalize(this);
     }
 
     public static bool StartupEnabled

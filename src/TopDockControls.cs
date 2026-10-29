@@ -38,7 +38,8 @@ internal sealed class TopDockControls : Window
         body.Children.Clear(); var c = shell.Config;
         if (page == "Buttons")
         {
-            Note("Drag the grip to reorder. Choose left, center or right. Turn off any button.");
+            Note("Drag buttons anywhere across the Dock, including empty space. The outline shows where they will land. Drag a grip here to reorder, or choose a group to snap back to it.");
+            body.Children.Add(Theme.Button("+ Piece", "Add an independent Dock piece", () => { var editor = new DockPieceEditor(shell); editor.Closed += (_, _) => { if (IsLoaded) Render(); }; editor.Show(); }));
             var add = new WrapPanel { Margin = new Thickness(0, 0, 0, 10) }; add.Children.Add(Theme.Button("+ Divider", "Add Dock divider", () => { BarLayout.AddDivider(c, "right"); Changed(); Render(); })); add.Children.Add(Theme.Button("+ Space", "Add flexible space", () => { BarLayout.AddDivider(c, "right", space: true); Changed(); Render(); })); add.Children.Add(Theme.Button("Reset layout", "Restore the default Dock layout", () => { c.TopDockItems = BarLayout.Defaults(c); Changed(); Render(); })); body.Children.Add(add);
             foreach (var item in c.TopDockItems.ToArray())
             {
@@ -46,11 +47,13 @@ internal sealed class TopDockControls : Window
                 var grip = Theme.Button(UiIcons.Icon("grip", 17), "Drag " + BarLayout.Label(item), () => { }); grip.Width = 24; grip.Padding = new Thickness(2); grip.Cursor = Cursors.SizeAll; row.Children.Add(grip);
                 var remove = Theme.Button(UiIcons.Icon("close", 12), "Remove divider", () => { c.TopDockItems.Remove(item); Changed(); Render(); }); remove.Padding = new Thickness(6); remove.Visibility = item.Id.StartsWith("divider.") ? Visibility.Visible : Visibility.Hidden; DockPanel.SetDock(remove, System.Windows.Controls.Dock.Right); row.Children.Add(remove);
                 var group = new ComboBox { ItemsSource = new[] { "left", "center", "right" }, SelectedItem = item.Group, Width = 90, Margin = new Thickness(6, 1, 3, 1) }; group.SelectionChanged += (_, _) => { if (group.SelectedItem is string value) { BarLayout.Move(c, item.Id, null, value); Changed(); } }; AutomationProperties.SetName(group, BarLayout.Label(item) + " position"); DockPanel.SetDock(group, System.Windows.Controls.Dock.Right); row.Children.Add(group);
-                var toggle = new CheckBox { Style = (Style)FindResource("Harbor.Switch"), Content = BarLayout.Label(item), IsChecked = item.Enabled && BarLayout.Legacy(c, item.Id), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(3, 0, 0, 0) }; toggle.Checked += (_, _) => { BarLayout.Enable(c, item, true); Changed(); }; toggle.Unchecked += (_, _) => { BarLayout.Enable(c, item, false); Changed(); }; AutomationProperties.SetName(toggle, "Show " + BarLayout.Label(item)); row.Children.Add(toggle);
-                Point start = default; grip.MouseLeftButtonDown += (_, e) => start = e.GetPosition(grip);
-                grip.MouseMove += (_, e) => { if (e.LeftButton != MouseButtonState.Pressed || dragging || (e.GetPosition(grip) - start).Length < 5) return; dragging = true; try { DragDrop.DoDragDrop(grip, new DataObject("Harbor.TopDockEditor", item.Id), DragDropEffects.Move); } finally { dragging = false; Dispatcher.BeginInvoke(new Action(Render)); } };
-                row.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent("Harbor.TopDockEditor") ? DragDropEffects.Move : DragDropEffects.None; e.Handled = true; };
-                row.Drop += (_, e) => { if (e.Data.GetData("Harbor.TopDockEditor") is string id) { BarLayout.Move(c, id, item.Id, item.Group); Changed(); e.Handled = true; } }; body.Children.Add(row);
+                var edit = Theme.Button(UiIcons.Icon("controls", 13), "Edit " + BarLayout.Label(item), () => { var editor = new DockPieceEditor(shell, item); editor.Show(); }); edit.Padding = new Thickness(6); DockPanel.SetDock(edit, System.Windows.Controls.Dock.Right); row.Children.Add(edit);
+                var toggle = new CheckBox { Style = (Style)FindResource("Harbor.Switch"), Content = BarLayout.Label(item), IsChecked = item.Enabled && BarLayout.Legacy(c, BarLayout.Component(item)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(3, 0, 0, 0) }; toggle.Checked += (_, _) => { BarLayout.Enable(c, item, true); Changed(); }; toggle.Unchecked += (_, _) => { BarLayout.Enable(c, item, false); Changed(); }; AutomationProperties.SetName(toggle, "Show " + BarLayout.Label(item)); row.Children.Add(toggle);
+                Point start = default; bool armed = false; grip.PreviewMouseLeftButtonDown += (_, e) => { start = e.GetPosition(grip); armed = true; };
+                grip.PreviewMouseLeftButtonUp += (_, _) => armed = false;
+                grip.PreviewMouseMove += (_, e) => { if (!armed || e.LeftButton != MouseButtonState.Pressed || dragging || (e.GetPosition(grip) - start).Length < 5) return; armed = false; dragging = true; grip.ReleaseMouseCapture(); try { DragDrop.DoDragDrop(grip, new DataObject(BarLayout.DragFormat, item.Id), DragDropEffects.Move); } finally { dragging = false; Dispatcher.BeginInvoke(new Action(Render)); } };
+                row.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(BarLayout.DragFormat) ? DragDropEffects.Move : DragDropEffects.None; e.Handled = true; };
+                row.Drop += (_, e) => { if (e.Data.GetData(BarLayout.DragFormat) is string id) { BarLayout.Move(c, id, item.Id, item.Group); Changed(); e.Handled = true; } }; body.Children.Add(row);
             }
         }
         else if (page == "Style")

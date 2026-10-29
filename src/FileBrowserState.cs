@@ -9,13 +9,14 @@ internal sealed class FileTab
 {
     internal readonly string Id = Guid.NewGuid().ToString("N");
     internal string Folder, Search = "";
+    internal string? Label;
     internal readonly Stack<string> Back = new(), Forward = new();
     internal List<FileEntry> Entries = new();
     internal FileTab(string path) { Folder = path; }
-    internal string Name => Path.GetFileName(Folder.TrimEnd(Path.DirectorySeparatorChar)) is string name && name.Length > 0 ? name : Folder;
+    internal string Name => Label ?? (Path.GetFileName(Folder.TrimEnd(Path.DirectorySeparatorChar)) is string name && name.Length > 0 ? name : Folder);
     internal void Visit(string path, bool history)
     {
-        path = Path.GetFullPath(path);
+        if (!TaskbarFolders.IsFolder(path)) path = Path.GetFullPath(path);
         if (history && Folder.Length > 0 && !Folder.Equals(path, StringComparison.OrdinalIgnoreCase)) { Back.Push(Folder); Forward.Clear(); }
         Folder = path;
     }

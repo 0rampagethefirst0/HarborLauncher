@@ -50,6 +50,14 @@ internal static class Diagnostics
                 var monitorBounds = Native.Monitor(monitor).Monitor; var dockControls = new DockControls(model, monitor, monitorBounds); Save(dockControls, "dock-controls"); dockControls.Close();
                 foreach (string page in new[] { "Buttons", "Style", "Behavior" }) { var topControls = new TopDockControls(model, monitor); topControls.PreparePreview(page); Save(topControls, "top-dock-" + page.ToLowerInvariant()); topControls.Close(); }
                 var topBar = new TopBar(model, monitor); topBar.Width = 1240; topBar.PreparePreview(); Save(topBar, "top-dock"); topBar.Close();
+                var savedPieces = JsonSerializer.Serialize(model.Config.TopDockItems); foreach (var piece in model.Config.TopDockItems) piece.Position = null; BarLayout.Move(model.Config, "play", "time", "center");
+                var composed = new TopBar(model, monitor); composed.Width = 1240; composed.PreparePreview(); Save(composed, "top-dock-composed"); composed.Close();
+                var pieceEditor = new DockPieceEditor(model, model.Config.TopDockItems.First(i => i.Id == "time")); Save(pieceEditor, "dock-piece-editor"); pieceEditor.Close(); model.Config.TopDockItems = JsonSerializer.Deserialize<List<BarItem>>(savedPieces)!;
+                var folderDemo = new AppFolder { Name = "Favorites", Apps = model.Config.Pins.Where(p => !TaskbarFolders.IsFolder(p.Path)).Take(4).ToList() }; var savedPins = model.Config.Pins.ToList();
+                model.Config.AppFolders.Add(folderDemo); model.Config.Pins.RemoveAll(p => folderDemo.Apps.Contains(p)); model.Config.Pins.Add(new Pin { Name = folderDemo.Name, Path = TaskbarFolders.Path(folderDemo), Target = TaskbarFolders.Path(folderDemo) });
+                var folderPopup = new AppFolderPopup(model, folderDemo, monitor); Save(folderPopup, "app-folder"); folderPopup.Close();
+                var appFiles = new Files(model, TaskbarFolders.Path(folderDemo)); Save(appFiles, "files-app-folder"); appFiles.Close();
+                var folderDock = new Dock(model, monitor); folderDock.Refresh(true); Save(folderDock, "taskbar-folder"); folderDock.Close(); model.Config.AppFolders.Remove(folderDemo); model.Config.Pins.Clear(); model.Config.Pins.AddRange(savedPins);
                 var menuDock = new Dock(model, monitor); var dockMenu = menuDock.ContextMenu!; dockMenu.Visibility = Visibility.Visible; dockMenu.ApplyTemplate();
                 dockMenu.Measure(new Size(248, 190)); dockMenu.Arrange(new Rect(0, 0, 248, 190)); dockMenu.UpdateLayout();
                 var menuTarget = new RenderTargetBitmap(248, 190, 96, 96, PixelFormats.Pbgra32); menuTarget.Render(dockMenu); var menuEncoder = new PngBitmapEncoder(); menuEncoder.Frames.Add(BitmapFrame.Create(menuTarget)); using (var menuFile = File.Create(Path.Combine(directory, "dock-menu.png"))) menuEncoder.Save(menuFile); menuDock.Close();
@@ -60,7 +68,7 @@ internal static class Diagnostics
                 var dashboard = model.Mods.Catalog.First(m => m.Component == "dashboard"); var designer = new ModDesigner(model, dashboard); Save(designer, "builder"); designer.Close();
                 var card = new Widget(model, model.Mods.Catalog.First(m => m.Id == "harbor.resource-desk"), true); card.View.Measure(new Size(360, double.PositiveInfinity)); card.View.Arrange(new Rect(0, 0, 360, card.View.DesiredSize.Height));
                 var dashboardWindow = new Window { Width = 380, Height = Math.Max(300, card.View.DesiredSize.Height + 24), Content = new Border { Background = Theme.Bg, Padding = new Thickness(10), Child = card.View } }; Save(dashboardWindow, "dashboard"); dashboardWindow.Close();
-                File.WriteAllText(Path.Combine(directory, "visual-check.json"), JsonSerializer.Serialize(new { RenderMode = RenderOptions.ProcessRenderMode.ToString(), model.Catalog.Apps.Count, ModCount = model.Mods.Catalog.Count, Images = 27, DesktopChanged = false }));
+                File.WriteAllText(Path.Combine(directory, "visual-check.json"), JsonSerializer.Serialize(new { RenderMode = RenderOptions.ProcessRenderMode.ToString(), model.Catalog.Apps.Count, ModCount = model.Mods.Catalog.Count, Images = 32, DesktopChanged = false }));
                 app.Shutdown();
             }
             catch (Exception ex) { File.WriteAllText(Path.Combine(directory, "error.txt"), ex.ToString()); app.Shutdown(1); }

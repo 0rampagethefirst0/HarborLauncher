@@ -27,8 +27,11 @@ internal sealed class Dock : Window
     readonly Dictionary<string, DockApp> apps = new(StringComparer.OrdinalIgnoreCase);
     readonly List<string> runningOrder = new();
     ContextMenu? openMenu;
+    bool dragging;
+    long dragHoverUntil;
+    Button? dropTarget;
     internal bool InputPassThrough { get; private set; }
-    internal bool MenuOpen => openMenu?.IsOpen == true || ContextMenu?.IsOpen == true || apps.Values.Any(a => a.Button.ContextMenu?.IsOpen == true) || customDividers.Values.Any(d => d.ContextMenu?.IsOpen == true);
+    internal bool MenuOpen => dragging || Environment.TickCount64 < dragHoverUntil || openMenu?.IsOpen == true || ContextMenu?.IsOpen == true || apps.Values.Any(a => a.Button.ContextMenu?.IsOpen == true) || customDividers.Values.Any(d => d.ContextMenu?.IsOpen == true);
     AppBar? appbar;
     internal Dock(Shell shell, IntPtr monitor)
     {
@@ -58,19 +61,35 @@ internal sealed class Dock : Window
         menu.Closed += (_, _) => shell.DockInteraction.Touch(this);
         PreviewMouseUp += (_, _) => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, new Action(() => Refresh()));
         PreviewMouseWheel += (_, e) => { var app = apps.Values.FirstOrDefault(a => a.Button.IsMouseOver); if (app != null && app.Wheel(e.Delta, (System.Windows.Input.Keyboard.Modifiers & ModifierKeys.Alt) != 0)) { e.Handled = true; return; } if (scroller.ScrollableWidth > 0) { scroller.ScrollToHorizontalOffset(scroller.HorizontalOffset - e.Delta * .6); e.Handled = true; } };
-        AllowDrop = true;
-        DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Link : DragDropEffects.None; e.Handled = true; };
-        Drop += (_, e) =>
-        {
-            if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths) return;
-            foreach (string path in paths)
-            {
-                if (!File.Exists(path)) continue; string ext = Path.GetExtension(path).ToLowerInvariant();
-                if (ext is not ".lnk" and not ".exe" and not ".url") continue;
-                shell.Pin(new Pin { Name = Path.GetFileNameWithoutExtension(path), Path = path, Target = ext == ".lnk" ? Catalog.Resolve(path) : path });
+        menu.Items.Insert(3, Theme.Item("New app folder", () => { var folder = new AppFolder(); shell.Config.AppFolders.Add(folder); shell.SaveShortcuts(); shell.OpenAppFolder(folder, MonitorHandle); }));
+        AllowDrop = true; root.AllowDrop = true; frame.AllowDrop = true; items.AllowDrop = true;
+        root.PreviewDragOver += (_, e) => {
+            if (!e.Data.GetDataPresent(TaskbarFolders.DragFormat) && !e.Data.GetDataPresent(DataFormats.FileDrop) && !e.Data.GetDataPresent(BarLayout.DividerDragFormat)) { e.Effects = DragDropEffects.None; return; }
+            dragHoverUntil = Environment.TickCount64 + 500; shell.DockInteraction.Touch(this); ClearDropCue();
+            var (target, mode) = DropLocation(e); if (target != null) { dropTarget = target.Button; dropTarget.BorderBrush = Theme.Accent; dropTarget.BorderThickness = mode == "folder" ? new Thickness(2) : mode == "before" ? new Thickness(3, 0, 0, 0) : new Thickness(0, 0, 3, 0); dropTarget.Background = Theme.Raised; }
+            e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) || e.Data.GetDataPresent(BarLayout.DividerDragFormat) ? DragDropEffects.Move : DragDropEffects.Link; e.Handled = true;
+        };
+        root.PreviewDragLeave += (_, e) => { var p = e.GetPosition(root); if (!new Rect(root.RenderSize).Contains(p)) { ClearDropCue(); dragHoverUntil = 0; } };
+        root.PreviewDrop += (_, e) => {
+            var (target, mode) = DropLocation(e); var sources = TaskbarFolders.Shortcuts(e.Data); var destination = target?.Shortcut;
+            try {
+                if (e.Data.GetData(BarLayout.DividerDragFormat) is string dividerId) { var divider = shell.Config.TaskbarDividers.FirstOrDefault(d => d.Id == dividerId); if (divider != null) { string anchor = target?.Anchor ?? ""; divider.Before = mode == "before" ? anchor : ""; divider.After = mode == "after" ? anchor : ""; shell.Config.Save(); } }
+                else { var created = shell.DropTaskbarApps(sources, destination, mode); if (created != null && Settings.TestDataDir == null) Dispatcher.BeginInvoke(new Action(() => shell.OpenAppFolder(created, MonitorHandle))); }
             }
+            catch (Exception ex) { shell.Notifications.Add("Apps could not be grouped", ex.Message); }
+            ClearDropCue(); dragHoverUntil = 0; Dispatcher.BeginInvoke(new Action(() => Refresh())); e.Handled = true;
         };
     }
+    (DockApp? Target, string Mode) DropLocation(DragEventArgs e)
+    {
+        foreach (var app in apps.Values) { var p = e.GetPosition(app.Button); if (!new Rect(app.Button.RenderSize).Contains(p)) continue;
+            double fraction = p.X / Math.Max(1, app.Button.ActualWidth); var source = TaskbarFolders.Read(e.Data);
+            bool folder = !e.Data.GetDataPresent(BarLayout.DividerDragFormat) && fraction is > .25 and < .75 && (source == null || !TaskbarFolders.IsFolder(source.Path) || TaskbarFolders.IsFolder(app.Shortcut.Path));
+            return (app, folder ? "folder" : fraction < .5 ? "before" : "after");
+        }
+        return (null, "end");
+    }
+    void ClearDropCue() { if (dropTarget == null) return; dropTarget.ClearValue(BorderBrushProperty); dropTarget.ClearValue(BorderThicknessProperty); dropTarget.ClearValue(BackgroundProperty); dropTarget = null; }
     static Border Divider() => new() { Width = 1, Height = 26, Background = Theme.Line, Margin = new Thickness(6, 0, 6, 0) };
     internal void SetInputMode(bool passThrough, double fadedOpacity)
     {
@@ -98,7 +117,8 @@ internal sealed class Dock : Window
         foreach (var pin in shell.Config.Pins)
         {
             foreach (var separator in shell.Config.TaskbarDividers.Where(s => s.Before.Equals(pin.Path, StringComparison.OrdinalIgnoreCase))) AddDivider(separator);
-            string token = "pin:" + pin.Path; var group = windows.Where(w => w.Matches(pin)).ToList();
+            var folder = TaskbarFolders.Find(shell.Config, pin.Path);
+            string token = "pin:" + pin.Path; var group = windows.Where(w => folder == null ? w.Matches(pin) : folder.Apps.Any(w.Matches)).ToList();
             Add(token, pin.Name, pin.Path, pin, pin.Target, group); foreach (var w in group) included.Add(w.Key);
             foreach (var separator in shell.Config.TaskbarDividers.Where(s => s.After.Equals(pin.Path, StringComparison.OrdinalIgnoreCase))) AddDivider(separator);
         }
@@ -139,6 +159,7 @@ internal sealed class Dock : Window
             if (!customDividers.TryGetValue(definition.Id, out var divider)) {
                 divider = Divider(); customDividers[definition.Id] = divider; divider.ToolTip = "Taskbar divider · right-click to edit";
                 var menu = new ContextMenu(); menu.Items.Add(Theme.Item("Switch line / space", () => { definition.Space = !definition.Space; shell.Config.Save(); Refresh(); })); menu.Items.Add(Theme.Item("Remove divider", () => { shell.Config.TaskbarDividers.Remove(definition); shell.Config.Save(); Refresh(); })); menu.Closed += (_, _) => Dispatcher.BeginInvoke(new Action(() => Refresh())); divider.ContextMenu = menu;
+                AppDrag.BindData(divider, () => new DataObject(BarLayout.DividerDragFormat, definition.Id), value => { dragging = value; shell.DockInteraction.Touch(this); if (!value) Dispatcher.BeginInvoke(new Action(() => Refresh())); }); divider.Cursor = Cursors.SizeWE;
             }
             divider.Width = definition.Space ? 16 : 1; divider.Background = definition.Space ? Brushes.Transparent : Theme.Line; desired.Add(divider);
         }
@@ -159,6 +180,8 @@ internal sealed class Dock : Window
         readonly Border indicator = new() { Height = 3, CornerRadius = new CornerRadius(2), VerticalAlignment = VerticalAlignment.Bottom };
         readonly TextBlock caption = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 10, 0) };
         internal readonly Button Button;
+        internal string Anchor => pin?.Path ?? "run:" + groupKey;
+        internal Pin Shortcut => pin ?? new Pin { Name = name, Path = path, Target = groupKey };
         Pin? pin;
         string name = "", path = "", groupKey = "", iconSpec = "";
         List<WindowEntry> windows = new();
@@ -170,6 +193,7 @@ internal sealed class Dock : Window
             Button.Padding = new Thickness(3, 0, 3, 0); Button.Margin = new Thickness(1, 0, 1, 0); Button.ContextMenu = new ContextMenu();
             Button.ContextMenu.Closed += (_, _) => { dock.shell.DockInteraction.Touch(dock); dock.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, new Action(() => dock.Refresh())); };
             Button.ContextMenuOpening += (_, _) => Menu(Button.ContextMenu!);
+            AppDrag.Bind(Button, () => Shortcut, value => { dock.dragging = value; dock.shell.DockInteraction.Touch(dock); if (!value) dock.Dispatcher.BeginInvoke(new Action(() => dock.Refresh())); });
             Button.PreviewMouseDown += (_, e) =>
             {
                 if (e.ChangedButton != MouseButton.Middle) return;
@@ -184,7 +208,8 @@ internal sealed class Dock : Window
             string label = name + (current.Count > 0 ? $" ({current.Count} open)" : ""); Button.ToolTip = label; AutomationProperties.SetName(Button, label);
             var labels = dock.shell.Tweaks.Module("dock-labels"); bool labeled = labels != null && (current.Count > 0 || dock.shell.Mods.Value(labels, "when", "always") == "always");
             int labelWidth = labels == null ? 0 : (int)dock.shell.Mods.Number(labels, "width", 130, 50, 240);
-            int size = dock.shell.Config.IconSize; string spec = path + "|" + name + "|" + size + "|" + labeled + "|" + labelWidth;
+            var folder = TaskbarFolders.Find(dock.shell.Config, path);
+            int size = dock.shell.Config.IconSize; string spec = path + "|" + name + "|" + size + "|" + labeled + "|" + labelWidth + "|" + (folder == null ? "" : string.Join("|", folder.Apps.Select(p => p.Path)));
             caption.Text = labels != null && dock.shell.Mods.Value(labels, "label", "app") == "window" ? (current.FirstOrDefault(w => w.Handle == Native.GetForegroundWindow()) ?? current.FirstOrDefault())?.Title ?? name : name;
             if (spec != iconSpec)
             {
@@ -192,12 +217,12 @@ internal sealed class Dock : Window
                 if (Button.Content is Panel old) { old.Children.Remove(indicator); old.Children.Remove(caption); }
                 var grid = new Grid { Width = size + 16 + (labeled ? labelWidth : 0), Height = size + 14 };
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(size + 16) }); if (labeled) grid.ColumnDefinitions.Add(new ColumnDefinition());
-                var icon = Theme.AppIcon(path, name, size); icon.VerticalAlignment = VerticalAlignment.Top; icon.Margin = new Thickness(0, 3, 0, 0); grid.Children.Add(icon); grid.Children.Add(indicator); Button.Content = grid;
+                var icon = folder == null ? Theme.AppIcon(path, name, size) : FolderUi.Icon(folder, size); icon.VerticalAlignment = VerticalAlignment.Top; icon.Margin = new Thickness(0, 3, 0, 0); grid.Children.Add(icon); grid.Children.Add(indicator); Button.Content = grid;
                 if (labeled) { Grid.SetColumn(caption, 1); grid.Children.Add(caption); }
             }
             Button.Height = size + 14; indicator.Visibility = current.Count > 0 ? Visibility.Visible : Visibility.Hidden;
         }
-        List<WindowEntry> Current() => dock.shell.Tracker.Windows.Where(w => (!dock.shell.Tweaks.Has("dock-monitor-only") || w.Monitor == dock.MonitorHandle) && (pin != null ? w.Matches(pin) : w.Key.Equals(groupKey, StringComparison.OrdinalIgnoreCase))).ToList();
+        List<WindowEntry> Current() { var folder = TaskbarFolders.Find(dock.shell.Config, path); return dock.shell.Tracker.Windows.Where(w => (!dock.shell.Tweaks.Has("dock-monitor-only") || w.Monitor == dock.MonitorHandle) && (folder != null ? folder.Apps.Any(w.Matches) : pin != null ? w.Matches(pin) : w.Key.Equals(groupKey, StringComparison.OrdinalIgnoreCase))).ToList(); }
         internal bool Wheel(int delta, bool alt)
         {
             var current = Current();
@@ -216,6 +241,8 @@ internal sealed class Dock : Window
         }
         void Click()
         {
+            if (AppDrag.Suppressed) return;
+            if (TaskbarFolders.Find(dock.shell.Config, path) is { } folder) { dock.shell.OpenAppFolder(folder, dock.MonitorHandle); return; }
             var current = Current();
             if (current.Count == 0) { if (pin != null) dock.shell.Launch(pin.Path); return; }
             if (current.Count == 1) { Native.Activate(current[0].Handle, true, Native.ForegroundBeforeClick(dock)); return; }
@@ -224,6 +251,7 @@ internal sealed class Dock : Window
         }
         void Menu(ContextMenu menu)
         {
+            if (TaskbarFolders.Find(dock.shell.Config, path) is { } folder) { menu.Items.Clear(); var entries = FolderUi.Menu(dock.shell, folder, dock); foreach (var entry in entries.Items.Cast<object>().ToArray()) { entries.Items.Remove(entry); menu.Items.Add(entry); } return; }
             menu.Items.Clear(); var current = Current(); string exe = current.FirstOrDefault()?.Path ?? "";
             if (exe.Length > 0) { var game = Theme.Item("Treat as game", () => dock.shell.ToggleGame(exe)); game.IsCheckable = true; game.IsChecked = dock.shell.Games.IsGame(exe); menu.Items.Add(game); }
             if (current.FirstOrDefault() is { } window) menu.Items.Add(Theme.Item("Mods for this app", () => dock.shell.OpenAppMods(window)));

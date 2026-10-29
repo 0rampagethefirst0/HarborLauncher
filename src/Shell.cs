@@ -30,6 +30,7 @@ internal sealed class Shell : IDisposable
     internal Notifications Notifications { get; }
     internal Dictionary<string, object> ModRuntime { get; } = new();
     internal double CpuUsage { get; private set; }
+    internal event Action? ShortcutsChanged;
     internal uint MemoryUsage { get; private set; }
     readonly List<TopBar> bars = new();
     readonly List<Dock> docks = new();
@@ -220,6 +221,7 @@ internal sealed class Shell : IDisposable
     }
     internal void Launch(string path)
     {
+        if (TaskbarFolders.Find(Config, path) is { } folder) { OpenAppFolder(folder, CurrentMonitor()); return; }
         string target = path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) ? Catalog.Resolve(path) : path;
         if (Config.UseHarborFiles && (Directory.Exists(target) || target.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase) || target.Equals(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"), StringComparison.OrdinalIgnoreCase)))
         { OpenFiles(Directory.Exists(target) ? target : null); return; }
@@ -274,15 +276,34 @@ internal sealed class Shell : IDisposable
     }
     internal void Pin(Pin pin)
     {
-        if (Config.Pins.Any(p => p.Path.Equals(pin.Path, StringComparison.OrdinalIgnoreCase) || KeysMatch(p.Target, pin.Target))) return;
-        Config.Pins.Add(pin); Config.Save(); foreach (var d in docks) d.Refresh(true);
+        if (TaskbarFolders.AllApps(Config).Any(p => p.Path.Equals(pin.Path, StringComparison.OrdinalIgnoreCase) || KeysMatch(p.Target, pin.Target))) return;
+        Config.Pins.Add(pin); SaveShortcuts();
     }
-    internal void Unpin(Pin pin) { Config.Pins.Remove(pin); Config.Save(); foreach (var d in docks) d.Refresh(true); }
+    internal void Unpin(Pin pin) { if (TaskbarFolders.Find(Config, pin.Path) is { } folder) TaskbarFolders.Unpack(Config, folder); else TaskbarFolders.RemoveApp(Config, pin.Path); SaveShortcuts(); }
     internal void MovePin(Pin pin, int direction)
     {
         int index = Config.Pins.IndexOf(pin), target = index + direction;
         if (index < 0 || target < 0 || target >= Config.Pins.Count) return;
-        Config.Pins.RemoveAt(index); Config.Pins.Insert(target, pin); Config.Save(); foreach (var d in docks) d.Refresh(true);
+        Config.Pins.RemoveAt(index); Config.Pins.Insert(target, pin); SaveShortcuts();
+    }
+    internal void SaveShortcuts() { Config.Save(); foreach (var d in docks) d.Refresh(true); ShortcutsChanged?.Invoke(); }
+    internal void OpenAppFolder(AppFolder folder, IntPtr monitor) => OpenFlyout(() => new AppFolderPopup(this, folder, monitor));
+    internal void ActivateApp(Pin pin)
+    {
+        var windows = Tracker.Windows.Where(w => w.Matches(pin)).ToList();
+        if (windows.Count > 0) Native.Activate(windows[0].Handle); else Launch(pin.Path);
+    }
+    internal AppFolder? DropTaskbarApps(IReadOnlyList<Pin> sources, Pin? target, string mode)
+    {
+        AppFolder? created = null, destination = target == null ? null : TaskbarFolders.Find(Config, target.Path);
+        foreach (var source in sources) {
+            if (source.Path.Equals(target?.Path, StringComparison.OrdinalIgnoreCase)) continue;
+            if (mode == "folder" && target != null) {
+                if (destination == null) { destination = TaskbarFolders.Create(Config, source, target); created = destination; }
+                else TaskbarFolders.Add(Config, destination, source);
+            } else TaskbarFolders.ToTaskbar(Config, source, target?.Path, mode == "after");
+        }
+        SaveShortcuts(); return created;
     }
     internal void ToggleLauncher(IntPtr monitor)
     {

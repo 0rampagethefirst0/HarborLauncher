@@ -24,6 +24,7 @@ internal static class Program
         // apps normally instead of inheriting that host's Node-only switch.
         Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null);
         if (args.Length >= 2 && args[0] == "--verify") { RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly; Verification.Run(args[1]); return; }
+        if (args.Length >= 2 && args[0] == "--verify-dock-drag") { RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly; DockPlacementVerification.Interactive(args[1]); return; }
         if (args.Length >= 2 && args[0] == "--render-demos") { RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly; ModDemoRecorder.Record(args[1]); return; }
         if (args.Length >= 2 && args[0] == "--export-catalog") { ModDemoRecorder.ExportCatalog(args[1]); return; }
         if (args.Length >= 3 && args[0] == "--optimize-demos") { ModDemoRecorder.Optimize(args[1], args[2]); return; }

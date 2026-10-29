@@ -1,4 +1,4 @@
-param([ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.6.0')
+param([ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.7.0')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $stage = Join-Path $root ('Package\Harbor-' + $Version + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '\Harbor')

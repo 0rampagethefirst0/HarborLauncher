@@ -1,6 +1,11 @@
-# Harbor 0.6.0
+# Harbor 0.7.0
 
-A native Windows shell with a desktop, top bar, dock, Apps screen, file manager, notification center, settings, and native mods. Run **App\Harbor.exe** or the Harbor shortcut. Requires .NET 9 Windows Desktop Runtime x64.
+A native Windows shell with a desktop, top Dock, app taskbar, Apps screen, file manager, notification center, settings, and native mods. Run **App\Harbor.exe** or the Harbor shortcut. Requires .NET 9 Windows Desktop Runtime x64.
+
+
+The top **Dock** accepts drops across its whole width, including empty space and either side of an icon. Date and Time are independent pieces: drag Play between them. Right-click a piece to edit, duplicate, hide, or move it; use **Dock controls > + Piece** to add custom text, more clocks/time zones, app shortcuts, CPU/memory readings, or media controls. Each piece can have its own width and text size. Text supports `{date}`, `{time}`, `{cpu}`, `{ram}`, and `{title}`. Drag dividers and spaces as well.
+
+The bottom **taskbar** supports app folders. Drop an app onto the center of another to group them; drop near an icon's edge to reorder. Click the folder to open its apps. Right-click to rename, move, or ungroup it. Drag more apps in, rearrange them inside, or drag an app back onto the taskbar. Every folder gets a shared tab and sidebar entry in **Files**; names and contents stay in sync. Files can add installed apps, move shortcuts between folders, and rearrange folder tabs. These folders organize shortcuts without moving or uninstalling programs.
 
 - **Windows**, **Ctrl + Esc**, or **Ctrl + Alt + Space** opens apps. Focusing another app closes the Apps screen.
 - **Win + E** opens Harbor Files; **Win + N** opens notifications; **Win + A** opens quick settings; **Win + D** shows/restores the desktop.
