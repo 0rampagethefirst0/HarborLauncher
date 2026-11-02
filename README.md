@@ -2,16 +2,19 @@
 
 **Harbor 0.14.2** is a customizable Windows desktop shell with its own Home library, desktop, taskbar, top Dock, file manager, notifications and native plugin engine.
 
-[Download for Windows](https://github.com/0rampagethefirst0/HarborLauncher/releases/tag/v0.14.2) · [Browse mods](https://harbor-mods.orangemole11.chatgpt.site) · [Report an issue](https://github.com/0rampagethefirst0/HarborLauncher/issues)
+[Browse mods](https://harbor-mods.orangemole11.chatgpt.site) · [Report an issue](https://github.com/0rampagethefirst0/HarborLauncher/issues)
 
 ![Harbor Home preview](docs/home.png)
 
 ## Try Harbor
 
-1. Install the **.NET 9 Windows Desktop Runtime, x64**, from [Microsoft](https://dotnet.microsoft.com/en-us/download/dotnet/9.0).
-2. Download `Harbor-v0.14.2.zip` from Releases and extract it to a permanent folder.
-3. Run `Harbor\App\Harbor.exe`. Choose your features in **Mods > Features**. Optional plugins start disabled on a new profile.
-4. For sign-in replacement, enable **Use Harbor as my desktop when I sign in** in Settings. Keep the installation in that folder while enabled.
+The source is published here; a prebuilt download has not been published.
+
+1. Install the **.NET 9 SDK, x64**, from [Microsoft](https://dotnet.microsoft.com/en-us/download/dotnet/9.0).
+2. Clone this repository or choose **Code > Download ZIP**, then extract the source.
+3. From the project folder, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Install`.
+4. Run `App\Harbor.exe`. Choose your features in **Mods > Features**. Optional plugins start disabled on a new profile.
+5. For sign-in replacement, enable **Use Harbor as my desktop when I sign in** in Settings. Keep the installation in that folder while enabled.
 
 Harbor is an early preview for Windows 10/11 x64. Shell mode replaces Explorer's desktop and bars while retaining Windows for recovery. Security/sign-in screens, app dialogs, Windows toast popups and advanced system settings remain Windows or app surfaces.
 
