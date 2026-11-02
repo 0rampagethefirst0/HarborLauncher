@@ -66,7 +66,7 @@ internal sealed class DockInteraction : IDisposable
     {
         if (!docks.TryGetValue(dock, out var lease)) return;
         typing.Clear(dock.MonitorHandle);
-        lease.Grant(Environment.TickCount64, shell.Config.DockInteractionDelay); dock.SetInputMode(false, shell.Config.DockFadeOpacity);
+        lease.Grant(Environment.TickCount64, shell.Config.DockInteractionDelay); dock.SetVisualState(false, TaskbarTransparency.Opacity(shell.Config, TaskbarStage.Activated));
     }
     internal void NotifyTyping()
     {
@@ -76,7 +76,7 @@ internal sealed class DockInteraction : IDisposable
         if (pid == Environment.ProcessId && !System.Windows.Application.Current.Windows.OfType<System.Windows.Window>().Any(w => w.ShowInTaskbar && w.IsVisible && new WindowInteropHelper(w).Handle == foreground)) return;
         if (Native.Class(foreground) is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd") return;
         var monitor = Native.MonitorFromWindow(foreground, 2); typing.Mark(monitor, Environment.TickCount64);
-        foreach (var dock in registered) if (dock.MonitorHandle == monitor && dock.IsVisible && docks.TryGetValue(dock, out var lease)) { lease.Reset(); dock.SetInputMode(true, shell.Config.DockFadeOpacity); }
+        foreach (var dock in registered) if (dock.MonitorHandle == monitor && dock.IsVisible && docks.TryGetValue(dock, out var lease)) { lease.Reset(); dock.SetVisualState(true, TaskbarTransparency.Opacity(shell.Config, TaskbarStage.Hover)); }
     }
     internal void Refresh()
     {
@@ -114,10 +114,12 @@ internal sealed class DockInteraction : IDisposable
     }
     void Update(Dock dock, DockLease lease, Native.Point cursor)
     {
-        if (!Enabled || !dock.IsVisible) { lease.Reset(); dock.SetInputMode(false, shell.Config.DockFadeOpacity); return; }
+        if (!Enabled || !dock.IsVisible) { lease.Reset(); dock.SetVisualState(false, TaskbarTransparency.Opacity(shell.Config, TaskbarStage.Base)); return; }
         bool inside = bounds.TryGetValue(dock, out var rect) && Contains(rect, cursor);
         bool interactive = lease.Update(Environment.TickCount64, inside, dock.MenuOpen || dock.IsMouseCaptureWithin || shell.DockMenuOpen, shell.Config.DockInteractionDelay);
-        dock.SetInputMode((shell.Config.DockQuietWhileTyping && typing.Active(dock.MonitorHandle, Environment.TickCount64)) || (!interactive && inside && CoversApp(dock, cursor)), shell.Config.DockFadeOpacity);
+        bool quiet = shell.Config.DockQuietWhileTyping && typing.Active(dock.MonitorHandle, Environment.TickCount64);
+        var stage = TaskbarTransparency.Stage(inside, interactive, quiet);
+        dock.SetVisualState(quiet || !interactive && inside && CoversApp(dock, cursor), TaskbarTransparency.Opacity(shell.Config, stage));
     }
     IntPtr Handle(int code, IntPtr message, IntPtr data)
     {
@@ -140,7 +142,7 @@ internal sealed class DockInteraction : IDisposable
             bool inside = Contains(rect, cursor);
             if (kind == 0x200)
             {
-                if ((inside && !dock.InputPassThrough) || (!inside && dock.InputPassThrough)) Update(dock, lease, cursor);
+                Update(dock, lease, cursor);
                 continue;
             }
             if (!inside || dock.MenuOpen || shell.DockMenuOpen || CoveredByPopup(dock, cursor)) continue;

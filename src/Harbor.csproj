@@ -12,9 +12,9 @@
     <ApplicationIcon>Harbor.ico</ApplicationIcon>
     <AssemblyName>Harbor</AssemblyName>
     <RootNamespace>Harbor</RootNamespace>
-    <Version>0.8.0</Version>
+    <Version>0.14.2</Version>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
-  <ItemGroup><Resource Include="Previews\*.png" /></ItemGroup>
+  <ItemGroup><Resource Include="Previews\*.png" /><Resource Include="Assets\tokyo-dragon-outline.png" /></ItemGroup>
 </Project>

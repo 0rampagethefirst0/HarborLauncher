@@ -217,7 +217,7 @@ internal sealed class WindowTracker
                 {
                     if (!Native.IsWindowVisible(h)) return true;
                     Native.GetWindowThreadProcessId(h, out uint pid);
-                    bool ownFiles = pid == Environment.ProcessId && Native.Title(h) == "Harbor — files";
+                    bool ownFiles = pid == Environment.ProcessId && Native.Title(h).Equals("Harbor — Files", StringComparison.OrdinalIgnoreCase);
                     if (pid == Environment.ProcessId && !ownFiles) return true;
                     long style = Native.GetWindowLong(h, -20).ToInt64();
                     if ((style & 0x80) != 0 || ((style & 0x40000) == 0 && Native.GetWindow(h, 4) != IntPtr.Zero)) return true;

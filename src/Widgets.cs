@@ -27,23 +27,27 @@ internal sealed class Widget
     readonly ModDefinition mod;
     readonly StackPanel body = new();
     readonly List<Action> ticks = new();
+    readonly List<Action> flush = new();
     readonly double width;
     readonly bool preview;
     readonly WidgetDemoData? demo;
     internal Border View { get; }
     internal Thumb Handle { get; }
-    internal Widget(Shell shell, ModDefinition mod, bool preview = false, WidgetDemoData? demo = null)
+    internal Widget(Shell shell, ModDefinition mod, bool preview = false, WidgetDemoData? demo = null, bool inline = false)
     {
         this.shell = shell; this.mod = mod; this.preview = preview; this.demo = demo; width = shell.Mods.Number(mod, "width", 280, 180, 650);
         body.Margin = new Thickness(16, 0, 16, 16);
         body.IsHitTestVisible = !preview;
         var root = new DockPanel();
         var header = new DockPanel { Margin = new Thickness(12, 8, 8, 4) };
-        var settings = Theme.IconButton("\uE713", "Customize " + mod.Name, shell.OpenMods); settings.Padding = new Thickness(6); DockPanel.SetDock(settings, System.Windows.Controls.Dock.Right); header.Children.Add(settings);
-        Handle = new Thumb { Height = 25, Cursor = System.Windows.Input.Cursors.SizeAll, Template = new ControlTemplate(typeof(Thumb)) { VisualTree = Header() } }; header.Children.Add(Handle); DockPanel.SetDock(header, System.Windows.Controls.Dock.Top); root.Children.Add(header); root.Children.Add(new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        var settings = Theme.IconButton("\uE713", "Customize " + mod.Name, () => shell.Plugins.Customize(mod, shell.CurrentMonitor())); settings.Padding = new Thickness(6); DockPanel.SetDock(settings, System.Windows.Controls.Dock.Right); header.Children.Add(settings);
+        Handle = new Thumb { Height = 25, Cursor = System.Windows.Input.Cursors.SizeAll, Template = new ControlTemplate(typeof(Thumb)) { VisualTree = Header() } }; header.Children.Add(Handle); DockPanel.SetDock(header, System.Windows.Controls.Dock.Top); if (!inline) root.Children.Add(header); root.Children.Add(new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         View = Theme.Card(root); View.Width = width; View.Tag = mod;
-        View.CornerRadius = new CornerRadius(shell.Mods.Number(mod, "radius", 14, 0, 60)); View.Opacity = shell.Mods.Number(mod, "opacity", 1, .2, 1);
-        try { if (Value("background").Length > 0) View.Background = Theme.Brush(Value("background")); if (Value("border").Length > 0) View.BorderBrush = Theme.Brush(Value("border")); } catch { }
+        if (!inline && !preview) { View.ContextMenu = new ContextMenu(); View.ContextMenuOpening += (_, e) => { if (e.Source is System.Windows.Controls.Primitives.TextBoxBase) return; e.Handled = true; shell.Plugins.Customize(mod, shell.CurrentMonitor()); }; }
+        if (inline) { View.Background = Brushes.Transparent; View.BorderThickness = new Thickness(0); body.Margin = new Thickness(12); }
+        View.CornerRadius = new CornerRadius(shell.Mods.Number(mod, "radius", 14, 0, 60)); View.Opacity = shell.Mods.Number(mod, "opacity", 1, .005, 1);
+        bool CustomColor(string key) => Value(key).Length > 0 && (!mod.Id.StartsWith("harbor.") || Value(key) != mod.Options.FirstOrDefault(o => o.Key == key)?.Default);
+        try { if (CustomColor("background")) View.Background = Theme.Brush(Value("background")); if (CustomColor("border")) View.BorderBrush = Theme.Brush(Value("border")); } catch { }
         switch (mod.Component)
         {
             case "dashboard": if (mod.Layout != null) { var layout = new WidgetLayout(shell, mod, preview, demo); body.Children.Add(layout.Build(mod.Layout, width - 32)); ticks.Add(layout.Tick); } break;
@@ -68,6 +72,7 @@ internal sealed class Widget
         FrameworkElementFactory Header() { var label = new FrameworkElementFactory(typeof(TextBlock)); label.SetValue(TextBlock.TextProperty, mod.Name); label.SetValue(TextBlock.ForegroundProperty, Theme.Muted); label.SetValue(TextBlock.FontSizeProperty, 11.0); label.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center); return label; }
     }
     internal void Tick() { foreach (var tick in ticks) try { tick(); } catch (Exception ex) { Log.Write("Widget " + mod.Id + ": " + ex.Message); } }
+    internal void Flush() { foreach (var save in flush) save(); }
     string Value(string key, string fallback = "") => shell.Mods.Value(mod, key, fallback);
     TextBlock Big() { var label = Theme.Label("", 28); body.Children.Add(label); return label; }
     void Clock(bool world)
@@ -104,8 +109,11 @@ internal sealed class Widget
     {
         var box = new TextBox { Text = Value("content"), AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 120, MaxHeight = 400, MaxLength = 20000, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontSize = 14, ToolTip = Value("placeholder", "Quick notes") };
         if (demo != null) ticks.Add(() => box.Text = demo.Notes);
-        var save = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) }; save.Tick += (_, _) => { save.Stop(); if (!preview) shell.Mods.Set(mod, "content", box.Text, false); };
-        box.TextChanged += (_, _) => { if (preview) return; save.Stop(); save.Start(); }; ViewUnloaded(() => { save.Stop(); if (!preview) shell.Mods.Set(mod, "content", box.Text, false); }); body.Children.Add(box);
+        bool dirty = false;
+        var save = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        void Commit() { save.Stop(); if (!preview && dirty) { shell.Mods.Set(mod, "content", box.Text, false); dirty = false; } }
+        save.Tick += (_, _) => Commit();
+        box.TextChanged += (_, _) => { if (preview) return; dirty = true; save.Stop(); save.Start(); }; ViewUnloaded(Commit); body.Children.Add(box);
     }
     void Tasks()
     {
@@ -155,5 +163,5 @@ internal sealed class Widget
     {
         foreach (string line in Value("apps").Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)) { string[] parts = line.Split('|', 2, StringSplitOptions.TrimEntries); if (parts.Length != 2) continue; var button = Theme.Button(parts[0], "Open " + parts[0], () => shell.Launch(Environment.ExpandEnvironmentVariables(parts[1]))); button.HorizontalContentAlignment = HorizontalAlignment.Left; body.Children.Add(button); }
     }
-    void ViewUnloaded(Action action) => body.Unloaded += (_, _) => action();
+    void ViewUnloaded(Action action) { flush.Add(action); body.Unloaded += (_, _) => action(); }
 }

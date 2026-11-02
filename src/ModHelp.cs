@@ -43,12 +43,31 @@ internal static class ModHelp
     internal static string Build(ModDefinition mod)
     {
         string key = mod.Id.StartsWith("harbor.") ? mod.Id[7..] : mod.Component;
-        if (Guides.TryGetValue(key, out var steps)) return string.Join("\n", steps);
+        if (Guides.TryGetValue(key, out var steps))
+        {
+            if (mod.Kind != "widget") return string.Join("\n", steps);
+            return string.Join("\n", new[] { "Install, then open Harbor's Apps screen to find the small " + PluginPresentation.ShortName(mod) + " control. Click it to expand the tool; click away or press Esc to collapse." }
+                .Concat(steps.Skip(1).Select(s => s.Replace("Drag the widget header to move it. ", "").Replace("Drag the header to place it beside your local clock.", "").Replace("on the desktop", "in the expanded tool").Replace("directly on your desktop", "in the expanded tool").Replace("Drag its header to move it; change Width to give it more room.", "Change Width to give the expanded tool more room.").Replace("Drag the header to move it.", "").Replace("Drag the header to keep it within reach.", "").Trim()))
+                .Concat(new[] { "Right-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor." }));
+        }
         if (mod.Kind == "theme") return "Click Install to apply this palette to Harbor's Dock, taskbar, widgets, and windows.\nChange individual colors below; use a hex color such as #8AB4FF, then click Apply settings.\nPause or uninstall the theme to return to your base appearance. Your saved theme settings are kept.";
-        return "Install to add this panel to your desktop. Use Win + D to see it.\nUse the panel's named controls, and change its options below with Apply settings.\nDrag the header to move it. Open the visual builder to adjust its layout.";
+        return "Install, then use the plugin's compact control to expand its tools. Older custom plugins can keep their desktop placement.\nUse the named controls, and change Access style below with Apply settings.\nChoose Edge tab, Floating control, Dock button, or Desktop panel. Drag a compact control to move it; click away to collapse its tool.";
     }
     internal static string[] Steps(ModDefinition mod) => (string.IsNullOrWhiteSpace(mod.Instructions) ? Build(mod) : mod.Instructions).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     internal static string OptionHint(ModDefinition mod, ModOption option) => option.Key switch {
+        "visibility" => "Apps screen only shows this tool with Harbor's Apps menu. With chosen apps shows it while any app in your list has a window open, including minimized windows. Always available keeps its compact control accessible.",
+        "visible-apps" => "One executable name, full path or packaged app ID per line. Example: Discord.exe. Any chosen app can activate the rule. Use Control settings for a searchable app picker.",
+        "snap" => "Auto spreads Clock, System Monitor, Quick Folders and Drive Space around a large center box. Choose a box corner, screen side, corner or Free to place it yourself.",
+        "always-on" => "Keep this tool expanded while its visibility rule matches. Apps screen only hides it when Apps closes; With chosen apps hides it when every chosen app closes. Its mode survives restarts. Esc or close turns expansion off.",
+        "compact-format" => "Combine readings with tokens such as CPU {cpu:0}% · RAM {ram:0}% · {time:HH:mm} · C: {disk.C.free:0} GB. Leave blank for the tool's mode.",
+        "meter-mode" => "Show CPU, RAM or both in the same compact control.",
+        "drive-mode" => "Show all selected drives, just the first, a rotating drive every four seconds, or used-space percentages.",
+        "access" => "Choose independent edge access, a freely movable control, an optional Dock button, or a full desktop panel. Content and settings stay with the plugin.",
+        "edge" => "The side of the screen used by an Edge tab. Drag the control vertically to place it.",
+        "compact-reading" => "Show a short live reading, just the tool's name, or an icon alone. Hovering still shows the full name and reading.",
+        "control-size" or "control-width" => "Size of the small collapsed control in pixels; the expanded tool keeps its own Width setting.",
+        "transition-ms" => "Opening animation duration: 180 is a short smooth transition. The global motion-off setting disables it.",
+        "control-x" or "control-y" => "0 is the start of the available screen space; 1 is the end. Leave blank for automatic placement, or simply drag the control.",
         "apps" => mod.Kind == "tweak" ? "One executable name or pattern per line, for example Discord.exe. * matches any text." : "One Label | path per line, for example Calculator | calc.exe.",
         "titles" => "Optional window-title patterns, one per line. Leave empty to match any title in the selected apps.",
         "exclude" => "Apps or window-title patterns to skip, one per line.",

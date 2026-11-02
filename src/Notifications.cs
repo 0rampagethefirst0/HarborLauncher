@@ -120,6 +120,7 @@ internal sealed class NotificationPanel : Window
     }
     void Refresh()
     {
+        using var viewport = ScrollPosition.Keep(items);
         items.Children.Clear(); status.Text = shell.Notifications.SyncStatus;
         foreach (var notice in shell.Notifications.Items)
         {

@@ -5,14 +5,14 @@ namespace Harbor;
 internal static class ModCopy
 {
     static readonly Dictionary<string, (string Description, string Caption)> Copy = new() {
-        ["clock"] = ("Put a clock and date on your desktop. Choose their size and format.", "See the time and date right on your desktop."),
+        ["clock"] = ("Keep the time in a small control. Expand it for the date and your chosen clock format.", "A small clock expands into the full date and time."),
         ["world-clock"] = ("See the time in another city without changing your PC’s time zone.", "Check Tokyo’s time alongside your local time."),
         ["system"] = ("Watch CPU and memory usage. The graph shows recent CPU activity.", "The graph tracks CPU use. RAM use stays beside it."),
         ["network"] = ("See how fast files are downloading and uploading right now.", "See download and upload speeds separately."),
         ["storage"] = ("See how much space is free on each drive you choose.", "Check the free space on each drive."),
         ["uptime"] = ("See how long Windows has been running since the last full restart.", "See the time since your last Windows restart."),
-        ["notes"] = ("Write a quick note on your desktop. Your text saves as you type.", "Type a note. It saves as you write."),
-        ["tasks"] = ("Keep a desktop checklist. Checked tasks stay checked when Harbor restarts.", "Tick off tasks and keep your progress."),
+        ["notes"] = ("Open a quick note when you need it, then collapse it. Your text saves as you type.", "Expand Notes, write, then collapse. Your text stays saved."),
+        ["tasks"] = ("See task progress in a small control. Expand it to check things off; progress survives a restart.", "Expand the checklist, tick a task, then keep just the progress visible."),
         ["focus"] = ("Start a work timer. Pause, reset, or get a notification when time is up.", "Start a countdown for your next focus session."),
         ["stopwatch"] = ("Time an activity from zero. Pause or reset whenever you need.", "Count up from zero, then pause or reset."),
         ["calculator"] = ("Type a calculation and see the answer immediately. Parentheses work too.", "Type (12 + 8) × 4. The answer appears: 80."),
@@ -20,8 +20,8 @@ internal static class ModCopy
         ["folders"] = ("Keep your favorite folders one click away. They open in Harbor Files.", "Click Projects to open that folder."),
         ["clipboard"] = ("Keep recently copied text nearby. Click an item to copy it again. History clears when Harbor closes.", "Copy several things, then pick an earlier item."),
         ["layouts"] = ("Arrange open windows into columns, a grid, or a stack. Undo restores their previous positions.", "Choose a layout to organize your open windows."),
-        ["launchpad"] = ("Make a desktop group of app, folder, and website shortcuts.", "Click your shortcut to open an app or website."),
-        ["sound-desk"] = ("Adjust volume, mute audio, and control music from one desktop panel.", "Change volume, mute, or skip a track here."),
+        ["launchpad"] = ("Keep app, folder and website shortcuts behind a small movable control.", "Expand your shortcuts and choose an app or website."),
+        ["sound-desk"] = ("Expand a small sound control to adjust volume, mute audio, and control music.", "Open sound controls, change volume, then collapse them."),
         ["resource-desk"] = ("See CPU, RAM, drive space, and uptime together in one panel.", "Check CPU, RAM and free space in one place."),
         ["day-planner"] = ("Keep your tasks, focus timer, and notes together. Change the layout in the builder.", "Use your checklist, timer and notes together."),
         ["window-desk"] = ("Open apps, files, notifications, and window layouts from one panel.", "Open apps and organize windows from one panel."),

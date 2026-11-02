@@ -87,7 +87,7 @@ internal sealed class Tweaks
                         if (declined.Contains((window.Handle, mod.Component))) continue;
                         var snapshot = shell.Recovery.AcquireEffect(window.Handle, mod.Component);
                         if (snapshot == null) { failures[mod.Id] = "This app's window cannot be changed"; continue; }
-                        bool ok = mod.Component == "window-topmost" ? WindowEffects.SetTopmost(snapshot, true) : WindowEffects.SetOpacity(snapshot, (int)shell.Mods.Number(mod, "opacity", 90, 30, 100));
+                        bool ok = mod.Component == "window-topmost" ? WindowEffects.SetTopmost(snapshot, true) : WindowEffects.SetOpacity(snapshot, shell.Mods.Number(mod, "opacity", 90, .5, 100));
                         if (!ok) { string message = WindowEffects.LastError.Length > 0 ? WindowEffects.LastError : "Windows declined this window effect"; if (!failures.ContainsKey(mod.Id)) Log.Write("Mod " + mod.Id + ": " + message); failures[mod.Id] = message; declined.Add((window.Handle, mod.Component)); shell.Recovery.ReleaseEffect(window.Handle, mod.Component); }
                         else active.Add((window.Handle, mod.Component));
                     }

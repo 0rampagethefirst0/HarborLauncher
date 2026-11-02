@@ -19,6 +19,7 @@ internal static class TweakPackages
         Add("toolbar-wheel-volume", "Scroll the Bar for Volume", "Audio", "Scroll anywhere on the top bar to change system volume. Optionally require Alt to prevent accidental changes.", false, Number("step", "Volume step percent", "2"), Choice("modifier", "Require Alt", "no", "no", "yes"));
         Add("clock-seconds", "Toolbar Clock Format", "Toolbar", "Use your own date and time format in the toolbar clock, including seconds. No continuous animation is used.", false, new ModOption { Key = "format", Label = "Date and time format", Default = "ddd, MMM d    HH:mm:ss" });
         Add("title-actions", "Active Window Controls", "Toolbar", "Double-click the active app title on the top bar to maximize or restore it. Right-click the title for minimize, close, always-on-top, and app-specific mod shortcuts.", false);
+        foreach (var mod in mods) { string? feature = mod.Component.StartsWith("dock-") ? "taskbar" : mod.Component is "toolbar-wheel-volume" or "clock-seconds" or "title-actions" ? "top-dock" : null; if (feature != null) mod.Dependencies.Add(new ModDependency { Id = ShellFeatures.Id(feature), MinimumVersion = "1.4.0" }); }
         return mods;
         void Add(string component, string name, string category, string description, bool window, params ModOption[] options)
         {

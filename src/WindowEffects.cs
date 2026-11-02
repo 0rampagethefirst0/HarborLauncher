@@ -48,11 +48,11 @@ internal static class WindowEffects
         if (((Native.GetWindowLong(h, -20).ToInt64() & Topmost) != 0) == value) return true;
         return Native.SetWindowPos(h, new IntPtr(value ? -1 : -2), 0, 0, 0, 0, 0x4013);
     }
-    internal static bool SetOpacity(WindowEffectState saved, int percent)
+    internal static bool SetOpacity(WindowEffectState saved, double percent)
     {
         LastError = "";
         var h = new IntPtr(saved.Handle); if (!Matches(saved) || !CanSetOpacity(saved)) return false;
-        byte target = (byte)((Math.Clamp(percent, 30, 100) * 255 + 50) / 100);
+        byte target = (byte)Math.Max(1, Math.Round(Math.Clamp(double.IsFinite(percent) ? percent : 100, .5, 100) * 255 / 100));
         if (GetLayeredWindowAttributes(h, out _, out byte current, out uint currentFlags) && (currentFlags & 2) != 0 && current == target) return true;
         long style = Native.GetWindowLong(h, -20).ToInt64();
         if ((style & Layered) == 0) Native.SetWindowLong(h, -20, new IntPtr(style | Layered));

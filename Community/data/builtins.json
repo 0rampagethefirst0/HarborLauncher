@@ -4,7 +4,7 @@
     "Id": "harbor.title-actions",
     "Name": "Active Window Controls",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Toolbar",
     "MainCategory": "Desktop",
     "Subcategory": "Toolbar",
@@ -17,7 +17,7 @@
     "Options": [],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "toolbar",
@@ -30,7 +30,12 @@
       "title",
       "actions"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Toolbar"
   },
@@ -39,7 +44,7 @@
     "Id": "harbor.window-topmost",
     "Name": "Always on Top",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Windows",
     "MainCategory": "Desktop",
     "Subcategory": "Windows",
@@ -74,7 +79,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "windows",
@@ -96,14 +101,14 @@
     "Id": "harbor.launchpad",
     "Name": "App Collection",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Productivity",
     "MainCategory": "Tools",
     "Subcategory": "Shortcuts",
     "PreviewImage": "",
     "PreviewAccent": "",
-    "Description": "Make a desktop group of app, folder, and website shortcuts.",
-    "Instructions": "Install to add a desktop group of shortcuts.\nIn Shortcuts, use one Label | path per line. Example: Calculator | calc.exe or Website | https://example.com.\nClick Apply settings. Click a named button in the widget to open its app, folder, or website.",
+    "Description": "Keep app, folder and website shortcuts behind a small movable control.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Apps control. Click it to expand the tool; click away or press Esc to collapse.\nIn Shortcuts, use one Label | path per line. Example: Calculator | calc.exe or Website | https://example.com.\nClick Apply settings. Click a named button in the widget to open its app, folder, or website.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "launchpad",
     "Options": [
@@ -112,6 +117,135 @@
         "Label": "Shortcuts",
         "Type": "multiline",
         "Default": "Calculator | calc.exe\nNotepad | notepad.exe",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -155,7 +289,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -163,7 +297,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "shortcuts",
@@ -177,14 +311,14 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 3,
     "Id": "harbor.window-placement",
     "Name": "App Placement",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Windows",
     "MainCategory": "Desktop",
     "Subcategory": "Windows",
@@ -268,7 +402,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "windows",
@@ -290,7 +424,7 @@
     "Id": "harbor.dock-wheel-volume",
     "Name": "App Volume on the Dock",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Audio",
     "MainCategory": "Desktop",
     "Subcategory": "Dock",
@@ -311,7 +445,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "audio",
@@ -325,23 +459,69 @@
       "wheel",
       "volume"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.taskbar",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Audio"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.bulky",
+    "Name": "Bulky",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Dock",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Group taskbar apps into named folders with adjustable app sizes.",
+    "Instructions": "Enable Bulky in Mods. Optional features start disabled on a new profile.\nGroup taskbar apps into named folders with adjustable app sizes.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "taskbar-folders",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "dock",
+      "native",
+      "offline",
+      "low-gpu",
+      "taskbar",
+      "folders"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.taskbar",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.tasks",
     "Name": "Checklist",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Productivity",
     "MainCategory": "Tools",
     "Subcategory": "Productivity",
     "PreviewImage": "",
     "PreviewAccent": "",
-    "Description": "Keep a desktop checklist. Checked tasks stay checked when Harbor restarts.",
-    "Instructions": "Install to put a checklist on the desktop.\nIn Tasks, enter one task per line, then click Apply settings.\nClick a checkbox to complete a task. Your checked items are kept when Harbor restarts.",
+    "Description": "See task progress in a small control. Expand it to check things off; progress survives a restart.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Tasks control. Click it to expand the tool; click away or press Esc to collapse.\nIn Tasks, enter one task per line, then click Apply settings.\nClick a checkbox to complete a task. Your checked items are kept when Harbor restarts.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "tasks",
     "Options": [
@@ -350,6 +530,135 @@
         "Label": "Tasks, one per line",
         "Type": "multiline",
         "Default": "Make something useful\nTake a break",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -393,7 +702,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -401,7 +710,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "productivity",
@@ -417,21 +726,21 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.clipboard",
     "Name": "Clipboard Shelf",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Productivity",
     "MainCategory": "Tools",
     "Subcategory": "Productivity",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Keep recently copied text nearby. Click an item to copy it again. History clears when Harbor closes.",
-    "Instructions": "Install to add Clipboard Shelf to the desktop.\nCopy some text in another app. It appears as a new item in the shelf.\nClick an older item to copy it again, then paste it where needed. History stays in memory and clears when Harbor exits.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Clipboard control. Click it to expand the tool; click away or press Esc to collapse.\nCopy some text in another app. It appears as a new item in the shelf.\nClick an older item to copy it again, then paste it where needed. History stays in memory and clears when Harbor exits.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "clipboard",
     "Options": [
@@ -440,6 +749,135 @@
         "Label": "Items to remember",
         "Type": "number",
         "Default": "12",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -483,7 +921,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -491,7 +929,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "productivity",
@@ -505,24 +943,422 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
+  },
+  {
+    "Format": 1,
+    "Id": "harbor.clock",
+    "Name": "Clock",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Desktop",
+    "MainCategory": "Tools",
+    "Subcategory": "Time",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Keep the time in a small control. Expand it for the date and your chosen clock format.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Clock control. Click it to expand the tool; click away or press Esc to collapse.\nIn settings, HH:mm means 24-hour time; h:mm tt means 12-hour time.\nChoose a separate Date format, then click Apply settings.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
+    "Kind": "widget",
+    "Component": "clock",
+    "Options": [
+      {
+        "Key": "format",
+        "Label": "Time format",
+        "Type": "text",
+        "Default": "HH:mm",
+        "Choices": []
+      },
+      {
+        "Key": "dateFormat",
+        "Label": "Date format",
+        "Type": "text",
+        "Default": "dddd, MMMM d",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "width",
+        "Label": "Widget width",
+        "Type": "number",
+        "Default": "280",
+        "Choices": []
+      },
+      {
+        "Key": "screen",
+        "Label": "Show on",
+        "Type": "choice",
+        "Default": "primary",
+        "Choices": [
+          "primary",
+          "all",
+          "secondary"
+        ]
+      },
+      {
+        "Key": "background",
+        "Label": "Widget background (blank to follow theme)",
+        "Type": "color",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "border",
+        "Label": "Widget border (blank to follow theme)",
+        "Type": "color",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "radius",
+        "Label": "Corner radius",
+        "Type": "number",
+        "Default": "14",
+        "Choices": []
+      },
+      {
+        "Key": "opacity",
+        "Label": "Opacity, 0.005 to 1",
+        "Type": "number",
+        "Default": "1",
+        "Choices": []
+      }
+    ],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "tools",
+      "time",
+      "native",
+      "customizable",
+      "offline",
+      "low-gpu",
+      "widgets",
+      "multi-monitor",
+      "clock"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Tool \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.collection-tabs",
+    "Name": "Collection Tabs",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Tools",
+    "Subcategory": "Shortcuts",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Give each Bulky app folder a synchronized tab in Harbor Files.",
+    "Instructions": "Enable Collection Tabs in Mods. Optional features start disabled on a new profile.\nGive each Bulky app folder a synchronized tab in Harbor Files.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "collection-tabs",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "tools",
+      "shortcuts",
+      "native",
+      "offline",
+      "low-gpu",
+      "collection",
+      "tabs"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.bulky",
+        "MinimumVersion": "1.4.0"
+      },
+      {
+        "Id": "harbor.files",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
   },
   {
     "Format": 2,
     "Id": "harbor.day-planner",
     "Name": "Day Planner",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dashboards",
     "MainCategory": "Tools",
     "Subcategory": "Productivity",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Keep your tasks, focus timer, and notes together. Change the layout in the builder.",
-    "Instructions": "Install to put your checklist, focus timer, and notes together on the desktop.\nCheck off tasks, start a focus session, and type directly into the notes area.\nUse the visual builder to rearrange sections and adjust their sizes.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Today control. Click it to expand the tool; click away or press Esc to collapse.\nCheck off tasks, start a focus session, and type directly into the notes area.\nUse the visual builder to rearrange sections and adjust their sizes.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "dashboard",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -564,7 +1400,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -684,7 +1520,7 @@
         }
       ]
     },
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "productivity",
@@ -698,24 +1534,153 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.calculator",
     "Name": "Desk Calculator",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Tools",
     "MainCategory": "Tools",
     "Subcategory": "Utilities",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Type a calculation and see the answer immediately. Parentheses work too.",
-    "Instructions": "Install to add the calculator to your desktop.\nType a calculation such as (12 \u002B 8) * 4 in its input. The result updates as you type.\nUse \u002B, -, *, /, decimals, and parentheses. Replace the input to start another calculation.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Calculate control. Click it to expand the tool; click away or press Esc to collapse.\nType a calculation such as (12 \u002B 8) * 4 in its input. The result updates as you type.\nUse \u002B, -, *, /, decimals, and parentheses. Replace the input to start another calculation.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "calculator",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -757,7 +1722,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -765,7 +1730,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "utilities",
@@ -779,109 +1744,14 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
-  },
-  {
-    "Format": 1,
-    "Id": "harbor.clock",
-    "Name": "Desktop Clock",
-    "Author": "Harbor",
-    "Version": "1.2.0",
-    "Category": "Desktop",
-    "MainCategory": "Tools",
-    "Subcategory": "Time",
-    "PreviewImage": "",
-    "PreviewAccent": "",
-    "Description": "Put a clock and date on your desktop. Choose their size and format.",
-    "Instructions": "Install to place a clock on your desktop. Use Win \u002B D to see it behind your apps.\nDrag the widget header to move it. In settings, HH:mm means 24-hour time; h:mm tt means 12-hour time.\nChoose a separate Date format, then click Apply settings.",
-    "Kind": "widget",
-    "Component": "clock",
-    "Options": [
-      {
-        "Key": "format",
-        "Label": "Time format",
-        "Type": "text",
-        "Default": "HH:mm",
-        "Choices": []
-      },
-      {
-        "Key": "dateFormat",
-        "Label": "Date format",
-        "Type": "text",
-        "Default": "dddd, MMMM d",
-        "Choices": []
-      },
-      {
-        "Key": "width",
-        "Label": "Widget width",
-        "Type": "number",
-        "Default": "280",
-        "Choices": []
-      },
-      {
-        "Key": "screen",
-        "Label": "Show on",
-        "Type": "choice",
-        "Default": "primary",
-        "Choices": [
-          "primary",
-          "all",
-          "secondary"
-        ]
-      },
-      {
-        "Key": "background",
-        "Label": "Widget background (blank to follow theme)",
-        "Type": "color",
-        "Default": "",
-        "Choices": []
-      },
-      {
-        "Key": "border",
-        "Label": "Widget border (blank to follow theme)",
-        "Type": "color",
-        "Default": "",
-        "Choices": []
-      },
-      {
-        "Key": "radius",
-        "Label": "Corner radius",
-        "Type": "number",
-        "Default": "14",
-        "Choices": []
-      },
-      {
-        "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
-        "Type": "number",
-        "Default": "1",
-        "Choices": []
-      }
-    ],
-    "Values": {},
-    "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
-    "Tags": [
-      "tools",
-      "time",
-      "native",
-      "customizable",
-      "offline",
-      "low-gpu",
-      "widgets",
-      "multi-monitor",
-      "clock"
-    ],
-    "Dependencies": [],
-    "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 3,
     "Id": "harbor.dock-labels",
     "Name": "Dock App Labels",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dock",
     "MainCategory": "Desktop",
     "Subcategory": "Dock",
@@ -922,7 +1792,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "dock",
@@ -934,23 +1804,192 @@
       "low-gpu",
       "labels"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.taskbar",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Dock"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.dock-clock",
+    "Name": "Dock Clock",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Independent date and time pieces with editable formats.",
+    "Instructions": "Enable Dock Clock in Mods. Optional features start disabled on a new profile.\nIndependent date and time pieces with editable formats.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "dock-clock",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "dock",
+      "clock"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.dock-dividers",
+    "Name": "Dock Dividers",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Adjustable lines and spaces between top Dock pieces.",
+    "Instructions": "Enable Dock Dividers in Mods. Optional features start disabled on a new profile.\nAdjustable lines and spaces between top Dock pieces.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "dock-dividers",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "dock",
+      "dividers"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.dock-meters",
+    "Name": "Dock Meters",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Compact CPU and RAM readings in the top Dock.",
+    "Instructions": "Enable Dock Meters in Mods. Optional features start disabled on a new profile.\nCompact CPU and RAM readings in the top Dock.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "dock-stats",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "dock",
+      "stats"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.dock-shortcuts",
+    "Name": "Dock Shortcuts",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Optional Files, Mods, notifications and settings buttons in the top Dock.",
+    "Instructions": "Enable Dock Shortcuts in Mods. Optional features start disabled on a new profile.\nOptional Files, Mods, notifications and settings buttons in the top Dock.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "dock-shortcuts",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "dock",
+      "shortcuts"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.storage",
     "Name": "Drive Space",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "System",
     "MainCategory": "Tools",
     "Subcategory": "Monitoring",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "See how much space is free on each drive you choose.",
-    "Instructions": "Install to show free space for your chosen drives on the desktop.\nEnter drive letters separated by commas, for example C:,D:. Only available drives are shown.\nClick Apply settings. This panel reports space; it does not clean or delete files.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Drives control. Click it to expand the tool; click away or press Esc to collapse.\nEnter drive letters separated by commas, for example C:,D:. Only available drives are shown.\nClick Apply settings. This panel reports space; it does not clean or delete files.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "storage",
     "Options": [
@@ -959,6 +1998,147 @@
         "Label": "Drive letters, comma separated",
         "Type": "text",
         "Default": "C:,D:",
+        "Choices": []
+      },
+      {
+        "Key": "drive-mode",
+        "Label": "Compact drive mode",
+        "Type": "choice",
+        "Default": "All drives",
+        "Choices": [
+          "All drives",
+          "First drive",
+          "Cycle drives",
+          "Used percent"
+        ]
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -1002,7 +2182,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -1010,7 +2190,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "monitoring",
@@ -1024,14 +2204,14 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.ember",
     "Name": "Ember",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Themes",
     "MainCategory": "Themes",
     "Subcategory": "Colorful",
@@ -1069,11 +2249,53 @@
         "Type": "color",
         "Default": "#EDF1FA",
         "Choices": []
+      },
+      {
+        "Key": "muted",
+        "Label": "Secondary text",
+        "Type": "color",
+        "Default": "#FFE7CAC0",
+        "Choices": []
+      },
+      {
+        "Key": "raised",
+        "Label": "Raised surfaces",
+        "Type": "color",
+        "Default": "#FF48322A",
+        "Choices": []
+      },
+      {
+        "Key": "border",
+        "Label": "Borders",
+        "Type": "color",
+        "Default": "#FF66473A",
+        "Choices": []
+      },
+      {
+        "Key": "wallpaper",
+        "Label": "Wallpaper",
+        "Type": "color",
+        "Default": "#211715",
+        "Choices": []
+      },
+      {
+        "Key": "logo",
+        "Label": "Logo and artwork",
+        "Type": "color",
+        "Default": "#FFB08A",
+        "Choices": []
+      },
+      {
+        "Key": "fire",
+        "Label": "Dragon fire",
+        "Type": "color",
+        "Default": "#FFB08A",
+        "Choices": []
       }
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "themes",
       "colorful",
@@ -1089,18 +2311,100 @@
     "Summary": "Theme \u00B7 Harbor"
   },
   {
+    "Format": 3,
+    "Id": "harbor.file-preview",
+    "Name": "File Preview",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Tools",
+    "Subcategory": "Utilities",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Read images, text and file details inside Harbor Files.",
+    "Instructions": "Enable File Preview in Mods. Optional features start disabled on a new profile.\nRead images, text and file details inside Harbor Files.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "file-preview",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "tools",
+      "utilities",
+      "native",
+      "offline",
+      "low-gpu",
+      "file",
+      "preview"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.files",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.file-thumbnails",
+    "Name": "File Thumbnails",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Tools",
+    "Subcategory": "Utilities",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Small image previews on file cards.",
+    "Instructions": "Enable File Thumbnails in Mods. Optional features start disabled on a new profile.\nSmall image previews on file cards.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "file-thumbnails",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "tools",
+      "utilities",
+      "native",
+      "offline",
+      "low-gpu",
+      "file",
+      "thumbnails"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.files",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
     "Format": 1,
     "Id": "harbor.focus",
     "Name": "Focus Timer",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Productivity",
     "MainCategory": "Tools",
     "Subcategory": "Productivity",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Start a work timer. Pause, reset, or get a notification when time is up.",
-    "Instructions": "Install to add a countdown timer to your desktop.\nSet Timer length in minutes, click Apply settings, then press Start on the widget.\nPause holds your remaining time. Reset returns to the full session. Harbor adds a notification when it finishes.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Focus control. Click it to expand the tool; click away or press Esc to collapse.\nSet Timer length in minutes, click Apply settings, then press Start on the widget.\nPause holds your remaining time. Reset returns to the full session. Harbor adds a notification when it finishes.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "focus",
     "Options": [
@@ -1109,6 +2413,135 @@
         "Label": "Timer length in minutes",
         "Type": "number",
         "Default": "25",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -1152,7 +2585,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -1160,7 +2593,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "productivity",
@@ -1176,14 +2609,14 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.forest",
     "Name": "Forest",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Themes",
     "MainCategory": "Themes",
     "Subcategory": "Colorful",
@@ -1221,11 +2654,53 @@
         "Type": "color",
         "Default": "#EDF1FA",
         "Choices": []
+      },
+      {
+        "Key": "muted",
+        "Label": "Secondary text",
+        "Type": "color",
+        "Default": "#FFB5D8CE",
+        "Choices": []
+      },
+      {
+        "Key": "raised",
+        "Label": "Raised surfaces",
+        "Type": "color",
+        "Default": "#FF243C32",
+        "Choices": []
+      },
+      {
+        "Key": "border",
+        "Label": "Borders",
+        "Type": "color",
+        "Default": "#FF345646",
+        "Choices": []
+      },
+      {
+        "Key": "wallpaper",
+        "Label": "Wallpaper",
+        "Type": "color",
+        "Default": "#111D1A",
+        "Choices": []
+      },
+      {
+        "Key": "logo",
+        "Label": "Logo and artwork",
+        "Type": "color",
+        "Default": "#84D4AC",
+        "Choices": []
+      },
+      {
+        "Key": "fire",
+        "Label": "Dragon fire",
+        "Type": "color",
+        "Default": "#84D4AC",
+        "Choices": []
       }
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "themes",
       "colorful",
@@ -1242,10 +2717,81 @@
   },
   {
     "Format": 3,
+    "Id": "harbor.files",
+    "Name": "Harbor Files",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Tools",
+    "Subcategory": "Utilities",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "A file manager with Home, tabs, readable cards and file actions.",
+    "Instructions": "Enable Harbor Files in Mods. Optional features start disabled on a new profile.\nA file manager with Home, tabs, readable cards and file actions.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "file-manager",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "tools",
+      "utilities",
+      "native",
+      "offline",
+      "low-gpu",
+      "file",
+      "manager"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.desktop-shortcuts",
+    "Name": "Harbor Home",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Windows",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "A blue 3D desktop emblem that opens an organized app library, with custom categories and a cinematic startup intro.",
+    "Instructions": "Enable Harbor Home in Mods. Optional features start disabled on a new profile.\nClick the blue emblem in the center of the desktop. Its ring expands into your app library.\nUse Desktop or All apps, categories and search. Drag an item onto a category to organize it without moving files; right-click for favorites and app actions.\nOpen Appearance to resize the emblem, turn rotation on or off, preview the startup intro or return to classic icons.",
+    "Kind": "feature",
+    "Component": "desktop-icons",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "windows",
+      "native",
+      "offline",
+      "low-gpu",
+      "icons"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
     "Id": "harbor.dock-middle-close",
     "Name": "Middle Click to Close",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dock",
     "MainCategory": "Desktop",
     "Subcategory": "Dock",
@@ -1258,7 +2804,7 @@
     "Options": [],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "dock",
@@ -1271,7 +2817,12 @@
       "middle",
       "close"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.taskbar",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Dock"
   },
@@ -1280,7 +2831,7 @@
     "Id": "harbor.midnight",
     "Name": "Midnight",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Themes",
     "MainCategory": "Themes",
     "Subcategory": "Dark",
@@ -1318,11 +2869,53 @@
         "Type": "color",
         "Default": "#EDF1FA",
         "Choices": []
+      },
+      {
+        "Key": "muted",
+        "Label": "Secondary text",
+        "Type": "color",
+        "Default": "#FFBEC9EF",
+        "Choices": []
+      },
+      {
+        "Key": "raised",
+        "Label": "Raised surfaces",
+        "Type": "color",
+        "Default": "#FF262E48",
+        "Choices": []
+      },
+      {
+        "Key": "border",
+        "Label": "Borders",
+        "Type": "color",
+        "Default": "#FF3A4366",
+        "Choices": []
+      },
+      {
+        "Key": "wallpaper",
+        "Label": "Wallpaper",
+        "Type": "color",
+        "Default": "#111523",
+        "Choices": []
+      },
+      {
+        "Key": "logo",
+        "Label": "Logo and artwork",
+        "Type": "color",
+        "Default": "#9AAEFF",
+        "Choices": []
+      },
+      {
+        "Key": "fire",
+        "Label": "Dragon fire",
+        "Type": "color",
+        "Default": "#9AAEFF",
+        "Choices": []
       }
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "themes",
       "dark",
@@ -1339,10 +2932,46 @@
   },
   {
     "Format": 3,
+    "Id": "harbor.minimalists-dock",
+    "Name": "Minimalists Dock",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "A slim, rearrangeable top Dock. Add only the pieces you want.",
+    "Instructions": "Enable Minimalists Dock in Mods. Optional features start disabled on a new profile.\nA slim, rearrangeable top Dock. Add only the pieces you want.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "top-dock",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "top",
+      "dock"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
     "Id": "harbor.dock-monitor-only",
     "Name": "Monitor-specific Dock",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dock",
     "MainCategory": "Desktop",
     "Subcategory": "Dock",
@@ -1355,7 +2984,7 @@
     "Options": [],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "dock",
@@ -1368,26 +2997,241 @@
       "monitor",
       "only"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.taskbar",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Dock"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.multi-monitor",
+    "Name": "Multi Monitor",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Windows",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Show enabled bars on your other monitors too.",
+    "Instructions": "Enable Multi Monitor in Mods. Optional features start disabled on a new profile.\nShow enabled bars on your other monitors too.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "multi-monitor",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "windows",
+      "native",
+      "offline",
+      "low-gpu",
+      "multi",
+      "monitor"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.network-control",
+    "Name": "Network Control",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "A small Dock button that opens network and quick settings.",
+    "Instructions": "Enable Network Control in Mods. Optional features start disabled on a new profile.\nA small Dock button that opens network and quick settings.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "network-control",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "network",
+      "control"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      },
+      {
+        "Id": "harbor.quick-settings",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.network",
     "Name": "Network Meter",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "System",
     "MainCategory": "Tools",
     "Subcategory": "Monitoring",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "See how fast files are downloading and uploading right now.",
-    "Instructions": "Install to show a network panel on your desktop.\nStart a download to see the download rate rise. Upload and download are shown separately.\nDrag the panel by its header and change its width in settings.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Network control. Click it to expand the tool; click away or press Esc to collapse.\nStart a download to see the download rate rise. Upload and download are shown separately.\nDrag the panel by its header and change its width in settings.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "network",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -1429,7 +3273,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -1437,7 +3281,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "monitoring",
@@ -1451,14 +3295,91 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.notification-center",
+    "Name": "Notification Center",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Tools",
+    "Subcategory": "Utilities",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "A place to read and dismiss Harbor and Windows notifications.",
+    "Instructions": "Enable Notification Center in Mods. Optional features start disabled on a new profile.\nA place to read and dismiss Harbor and Windows notifications.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "notification-center",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "tools",
+      "utilities",
+      "native",
+      "offline",
+      "low-gpu",
+      "notification",
+      "center"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.now-playing",
+    "Name": "Now Playing",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Previous, play/pause and next controls for your music player.",
+    "Instructions": "Enable Now Playing in Mods. Optional features start disabled on a new profile.\nPrevious, play/pause and next controls for your music player.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "media-controls",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "media",
+      "controls"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.plum",
     "Name": "Plum",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Themes",
     "MainCategory": "Themes",
     "Subcategory": "Colorful",
@@ -1496,11 +3417,53 @@
         "Type": "color",
         "Default": "#EDF1FA",
         "Choices": []
+      },
+      {
+        "Key": "muted",
+        "Label": "Secondary text",
+        "Type": "color",
+        "Default": "#FFD4C5E8",
+        "Choices": []
+      },
+      {
+        "Key": "raised",
+        "Label": "Raised surfaces",
+        "Type": "color",
+        "Default": "#FF3D2E4B",
+        "Choices": []
+      },
+      {
+        "Key": "border",
+        "Label": "Borders",
+        "Type": "color",
+        "Default": "#FF554266",
+        "Choices": []
+      },
+      {
+        "Key": "wallpaper",
+        "Label": "Wallpaper",
+        "Type": "color",
+        "Default": "#1C1525",
+        "Choices": []
+      },
+      {
+        "Key": "logo",
+        "Label": "Logo and artwork",
+        "Type": "color",
+        "Default": "#D0A3EE",
+        "Choices": []
+      },
+      {
+        "Key": "fire",
+        "Label": "Dragon fire",
+        "Type": "color",
+        "Default": "#D0A3EE",
+        "Choices": []
       }
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "themes",
       "colorful",
@@ -1520,14 +3483,14 @@
     "Id": "harbor.folders",
     "Name": "Quick Folders",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Productivity",
     "MainCategory": "Tools",
     "Subcategory": "Shortcuts",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Keep your favorite folders one click away. They open in Harbor Files.",
-    "Instructions": "Install to add folder shortcuts to the desktop.\nIn Folders, enter one folder path per line. %USERPROFILE%\\Downloads opens your Downloads folder.\nClick Apply settings, then click a shortcut in the widget to open it in Harbor Files.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Folders control. Click it to expand the tool; click away or press Esc to collapse.\nIn Folders, enter one folder path per line. %USERPROFILE%\\Downloads opens your Downloads folder.\nClick Apply settings, then click a shortcut in the widget to open it in Harbor Files.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "folders",
     "Options": [
@@ -1536,6 +3499,135 @@
         "Label": "Folders, one per line",
         "Type": "multiline",
         "Default": "%USERPROFILE%\n%USERPROFILE%\\Downloads\n%USERPROFILE%\\Documents",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -1579,7 +3671,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -1587,7 +3679,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "shortcuts",
@@ -1601,21 +3693,21 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.notes",
     "Name": "Quick Notes",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Productivity",
     "MainCategory": "Tools",
     "Subcategory": "Productivity",
     "PreviewImage": "",
     "PreviewAccent": "",
-    "Description": "Write a quick note on your desktop. Your text saves as you type.",
-    "Instructions": "Install and find Quick Notes on your desktop.\nClick inside the note and type. Changes save automatically on this PC.\nSet Note title to rename the panel. Drag the header to move it.",
+    "Description": "Open a quick note when you need it, then collapse it. Your text saves as you type.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Notes control. Click it to expand the tool; click away or press Esc to collapse.\nClick inside the note and type. Changes save automatically on this PC.\nSet Note title to rename the panel.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "notes",
     "Options": [
@@ -1624,6 +3716,135 @@
         "Label": "Note title",
         "Type": "text",
         "Default": "Quick notes",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -1667,7 +3888,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -1675,7 +3896,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "productivity",
@@ -1691,14 +3912,50 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.quick-settings",
+    "Name": "Quick Settings",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Tools",
+    "Subcategory": "Utilities",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Volume, app audio and common system controls in a compact panel.",
+    "Instructions": "Enable Quick Settings in Mods. Optional features start disabled on a new profile.\nVolume, app audio and common system controls in a compact panel.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "quick-settings",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "tools",
+      "utilities",
+      "native",
+      "offline",
+      "low-gpu",
+      "quick",
+      "settings"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
   },
   {
     "Format": 3,
     "Id": "harbor.window-memory",
     "Name": "Remember Window Positions",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Windows",
     "MainCategory": "Desktop",
     "Subcategory": "Windows",
@@ -1733,7 +3990,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "windows",
@@ -1755,17 +4012,146 @@
     "Id": "harbor.resource-desk",
     "Name": "Resource Desk",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dashboards",
     "MainCategory": "Tools",
     "Subcategory": "Monitoring",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "See CPU, RAM, drive space, and uptime together in one panel.",
-    "Instructions": "Install to place CPU, RAM, drive space, and uptime in one desktop panel.\nRead the meters while your apps run. Each section uses live system readings.\nUse the visual builder to resize, rearrange, or remove sections.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Resources control. Click it to expand the tool; click away or press Esc to collapse.\nRead the meters while your apps run. Each section uses live system readings.\nUse the visual builder to resize, rearrange, or remove sections.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "dashboard",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -1807,10 +4193,21 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
+      },
+      {
+        "Key": "meter-mode",
+        "Label": "Compact meter mode",
+        "Type": "choice",
+        "Default": "CPU \u002B RAM",
+        "Choices": [
+          "CPU \u002B RAM",
+          "CPU",
+          "RAM"
+        ]
       }
     ],
     "Values": {},
@@ -1897,7 +4294,7 @@
               "Height": 0,
               "Gap": 8,
               "Maximum": 100,
-              "Color": "#84D4AC",
+              "Color": "",
               "Background": "",
               "Values": {},
               "Children": []
@@ -1978,7 +4375,7 @@
         }
       ]
     },
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "monitoring",
@@ -1992,14 +4389,14 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 3,
     "Id": "harbor.toolbar-wheel-volume",
     "Name": "Scroll the Bar for Volume",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Audio",
     "MainCategory": "Desktop",
     "Subcategory": "Toolbar",
@@ -2030,7 +4427,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "audio",
@@ -2044,7 +4441,12 @@
       "wheel",
       "volume"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Audio"
   },
@@ -2053,7 +4455,7 @@
     "Id": "harbor.dock-scroll-windows",
     "Name": "Scroll to Switch Windows",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dock",
     "MainCategory": "Desktop",
     "Subcategory": "Dock",
@@ -2087,7 +4489,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "dock",
@@ -2100,7 +4502,12 @@
       "scroll",
       "windows"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.taskbar",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Dock"
   },
@@ -2109,17 +4516,146 @@
     "Id": "harbor.sound-desk",
     "Name": "Sound Desk",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dashboards",
     "MainCategory": "Tools",
     "Subcategory": "Audio",
     "PreviewImage": "",
     "PreviewAccent": "",
-    "Description": "Adjust volume, mute audio, and control music from one desktop panel.",
-    "Instructions": "Install to add the Sound Desk panel to your desktop.\nUse its volume, mute, previous, play/pause, and next buttons to control system audio and media.\nOpen the visual builder to rearrange the controls or change the panel layout.",
+    "Description": "Expand a small sound control to adjust volume, mute audio, and control music.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Sound control. Click it to expand the tool; click away or press Esc to collapse.\nUse its volume, mute, previous, play/pause, and next buttons to control system audio and media.\nOpen the visual builder to rearrange the controls or change the panel layout.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "dashboard",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -2161,7 +4697,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -2387,7 +4923,7 @@
         }
       ]
     },
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "audio",
@@ -2401,24 +4937,153 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.stopwatch",
     "Name": "Stopwatch",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Tools",
     "MainCategory": "Tools",
     "Subcategory": "Time",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Time an activity from zero. Pause or reset whenever you need.",
-    "Instructions": "Install, then find Stopwatch on the desktop.\nPress Start to count upward from zero; press Pause to hold the reading.\nPress Reset to return to zero. Drag the header to keep it within reach.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Stopwatch control. Click it to expand the tool; click away or press Esc to collapse.\nPress Start to count upward from zero; press Pause to hold the reading.\nPress Reset to return to zero.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "stopwatch",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -2460,7 +5125,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -2468,7 +5133,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "time",
@@ -2482,21 +5147,21 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.system",
     "Name": "System Monitor",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "System",
     "MainCategory": "Tools",
     "Subcategory": "Monitoring",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Watch CPU and memory usage. The graph shows recent CPU activity.",
-    "Instructions": "Install, then look on your desktop for the CPU and RAM panel.\nThe CPU line updates while apps work; RAM shows the amount of memory currently in use.\nChange History in seconds to show a shorter or longer graph. Click Apply settings.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small CPU control. Click it to expand the tool; click away or press Esc to collapse.\nThe CPU line updates while apps work; RAM shows the amount of memory currently in use.\nChange History in seconds to show a shorter or longer graph. Click Apply settings.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "system",
     "Options": [
@@ -2505,6 +5170,146 @@
         "Label": "History in seconds",
         "Type": "number",
         "Default": "60",
+        "Choices": []
+      },
+      {
+        "Key": "meter-mode",
+        "Label": "Compact meter mode",
+        "Type": "choice",
+        "Default": "CPU \u002B RAM",
+        "Choices": [
+          "CPU \u002B RAM",
+          "CPU",
+          "RAM"
+        ]
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -2548,7 +5353,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -2556,7 +5361,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "monitoring",
@@ -2572,14 +5377,210 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.taskbar",
+    "Name": "Taskbar",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Dock",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Your pinned apps and folders at the bottom of the screen. Optionally include open apps from Taskbar controls.",
+    "Instructions": "Enable Taskbar in Mods. Optional features start disabled on a new profile.\nYour pinned apps and folders at the bottom of the screen. Optionally include open apps from Taskbar controls.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "taskbar",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "dock",
+      "native",
+      "offline",
+      "low-gpu",
+      "taskbar"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.taskbar-dividers",
+    "Name": "Taskbar Dividers",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Dock",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Movable lines and spaces between groups of taskbar apps.",
+    "Instructions": "Enable Taskbar Dividers in Mods. Optional features start disabled on a new profile.\nMovable lines and spaces between groups of taskbar apps.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "taskbar-dividers",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "dock",
+      "native",
+      "offline",
+      "low-gpu",
+      "taskbar",
+      "dividers"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.taskbar",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
+    "Format": 1,
+    "Id": "harbor.tokyo-dragon",
+    "Name": "Tokyo Dragon",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Themes",
+    "Subcategory": "Dark",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Red outline wallpaper and a spinning 3D dragon. Fire reveals Home, then the logo returns to its saved angle. Every Harbor color can be changed.",
+    "Instructions": "Click Install to apply this palette to Harbor\u0027s Dock, taskbar, widgets, and windows.\nChange individual colors below; use a hex color such as #8AB4FF, then click Apply settings.\nPause or uninstall the theme to return to your base appearance. Your saved theme settings are kept.",
+    "Kind": "theme",
+    "Component": "palette",
+    "Options": [
+      {
+        "Key": "artwork",
+        "Label": "Wallpaper and logo",
+        "Type": "choice",
+        "Default": "Tokyo Dragon",
+        "Choices": [
+          "Tokyo Dragon",
+          "Harbor"
+        ]
+      },
+      {
+        "Key": "background",
+        "Label": "Background",
+        "Type": "color",
+        "Default": "#0C0C10",
+        "Choices": []
+      },
+      {
+        "Key": "panel",
+        "Label": "Panels",
+        "Type": "color",
+        "Default": "#171216",
+        "Choices": []
+      },
+      {
+        "Key": "accent",
+        "Label": "Accent",
+        "Type": "color",
+        "Default": "#F33D4F",
+        "Choices": []
+      },
+      {
+        "Key": "text",
+        "Label": "Text",
+        "Type": "color",
+        "Default": "#F7ECEE",
+        "Choices": []
+      },
+      {
+        "Key": "muted",
+        "Label": "Secondary text",
+        "Type": "color",
+        "Default": "#B99CA3",
+        "Choices": []
+      },
+      {
+        "Key": "raised",
+        "Label": "Raised surfaces",
+        "Type": "color",
+        "Default": "#2A1B22",
+        "Choices": []
+      },
+      {
+        "Key": "border",
+        "Label": "Borders",
+        "Type": "color",
+        "Default": "#57313C",
+        "Choices": []
+      },
+      {
+        "Key": "wallpaper",
+        "Label": "Wallpaper",
+        "Type": "color",
+        "Default": "#0C0C10",
+        "Choices": []
+      },
+      {
+        "Key": "logo",
+        "Label": "Logo and artwork",
+        "Type": "color",
+        "Default": "#F33D4F",
+        "Choices": []
+      },
+      {
+        "Key": "fire",
+        "Label": "Dragon fire",
+        "Type": "color",
+        "Default": "#FF8055",
+        "Choices": []
+      }
+    ],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "red",
+      "dragon",
+      "outline",
+      "minimal",
+      "wallpaper",
+      "dark",
+      "themes",
+      "native",
+      "customizable",
+      "offline",
+      "low-gpu",
+      "rounded",
+      "colorful",
+      "palette"
+    ],
+    "Dependencies": [],
+    "Conflicts": [],
+    "Summary": "Theme \u00B7 Harbor"
   },
   {
     "Format": 3,
     "Id": "harbor.clock-seconds",
     "Name": "Toolbar Clock Format",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Toolbar",
     "MainCategory": "Desktop",
     "Subcategory": "Toolbar",
@@ -2600,7 +5601,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "toolbar",
@@ -2613,7 +5614,12 @@
       "clock",
       "seconds"
     ],
-    "Dependencies": [],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
     "Conflicts": [],
     "Summary": "Behavior mod \u00B7 Toolbar"
   },
@@ -2622,17 +5628,146 @@
     "Id": "harbor.converter",
     "Name": "Unit Converter",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Tools",
     "MainCategory": "Tools",
     "Subcategory": "Utilities",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Convert temperatures, distances, weights, speeds, and data sizes.",
-    "Instructions": "Install and find Unit Converter on your desktop.\nChoose the conversion type and the input/output units, then enter a number.\nFor example, choose speed, km/h to mph, and enter 100. The converted result appears immediately.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Convert control. Click it to expand the tool; click away or press Esc to collapse.\nChoose the conversion type and the input/output units, then enter a number.\nFor example, choose speed, km/h to mph, and enter 100. The converted result appears immediately.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "converter",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -2674,7 +5809,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -2682,7 +5817,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "utilities",
@@ -2696,24 +5831,153 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.uptime",
     "Name": "Uptime",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "System",
     "MainCategory": "Tools",
     "Subcategory": "Monitoring",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "See how long Windows has been running since the last full restart.",
-    "Instructions": "Install to show the time since Windows last completed a full boot.\nRead days, hours, minutes, and seconds directly on the desktop.\nDrag its header to move it; change Width to give it more room.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Uptime control. Click it to expand the tool; click away or press Esc to collapse.\nRead days, hours, minutes, and seconds directly in the expanded tool.\nChange Width to give the expanded tool more room.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "uptime",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -2755,7 +6019,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -2763,7 +6027,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "monitoring",
@@ -2777,24 +6041,198 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
+  },
+  {
+    "Format": 3,
+    "Id": "harbor.volume-control",
+    "Name": "Volume Control",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "A small Dock button for audio and quick settings.",
+    "Instructions": "Enable Volume Control in Mods. Optional features start disabled on a new profile.\nA small Dock button for audio and quick settings.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "volume-control",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "volume",
+      "control"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      },
+      {
+        "Id": "harbor.quick-settings",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
   },
   {
     "Format": 2,
     "Id": "harbor.window-desk",
     "Name": "Window Desk",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Dashboards",
     "MainCategory": "Desktop",
     "Subcategory": "Dashboards",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Open apps, files, notifications, and window layouts from one panel.",
-    "Instructions": "Install to add a desktop panel for Apps, Files, notifications, and window layouts.\nClick a named control to open that Harbor surface. Choose a layout to organize open app windows.\nUse the visual builder to add, remove, or rearrange controls.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Windows control. Click it to expand the tool; click away or press Esc to collapse.\nClick a named control to open that Harbor surface. Choose a layout to organize open app windows.\nUse the visual builder to add, remove, or rearrange controls.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "dashboard",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -2836,7 +6274,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -2989,7 +6427,7 @@
         }
       ]
     },
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "desktop",
       "dashboards",
@@ -3003,24 +6441,153 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 1,
     "Id": "harbor.layouts",
     "Name": "Window Layouts",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Windows",
     "MainCategory": "Desktop",
     "Subcategory": "Windows",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "Arrange open windows into columns, a grid, or a stack. Undo restores their previous positions.",
-    "Instructions": "Install to add window layout buttons to the desktop.\nOpen a few ordinary app windows, then choose Columns, Grid, or Stack.\nChoose Undo to restore their earlier positions. Active games and full-screen windows are skipped.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small Layouts control. Click it to expand the tool; click away or press Esc to collapse.\nOpen a few ordinary app windows, then choose Columns, Grid, or Stack.\nChoose Undo to restore their earlier positions. Active games and full-screen windows are skipped.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "layouts",
     "Options": [
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
       {
         "Key": "width",
         "Label": "Widget width",
@@ -3062,7 +6629,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -3070,7 +6637,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "desktop",
       "windows",
@@ -3084,14 +6651,14 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   },
   {
     "Format": 3,
     "Id": "harbor.window-opacity",
     "Name": "Window Opacity",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Windows",
     "MainCategory": "Desktop",
     "Subcategory": "Windows",
@@ -3133,7 +6700,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.4.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "behavior",
       "windows",
@@ -3151,18 +6718,59 @@
     "Summary": "Behavior mod \u00B7 Windows"
   },
   {
+    "Format": 3,
+    "Id": "harbor.window-title",
+    "Name": "Window Title",
+    "Author": "Harbor",
+    "Version": "1.8.2",
+    "Category": "Tools",
+    "MainCategory": "Desktop",
+    "Subcategory": "Toolbar",
+    "PreviewImage": "",
+    "PreviewAccent": "",
+    "Description": "Show the focused app\u0027s title as a movable Dock piece.",
+    "Instructions": "Enable Window Title in Mods. Optional features start disabled on a new profile.\nShow the focused app\u0027s title as a movable Dock piece.\nUse Customize feature for its controls. Disable it to hide the feature; saved layouts and content are kept.",
+    "Kind": "feature",
+    "Component": "active-title",
+    "Options": [],
+    "Values": {},
+    "Layout": null,
+    "MinimumHarborVersion": "0.14.2",
+    "Tags": [
+      "feature",
+      "optional",
+      "shell",
+      "customizable",
+      "desktop",
+      "toolbar",
+      "native",
+      "offline",
+      "low-gpu",
+      "active",
+      "title"
+    ],
+    "Dependencies": [
+      {
+        "Id": "harbor.minimalists-dock",
+        "MinimumVersion": "1.4.0"
+      }
+    ],
+    "Conflicts": [],
+    "Summary": "Feature plugin \u00B7 Harbor"
+  },
+  {
     "Format": 1,
     "Id": "harbor.world-clock",
     "Name": "World Clock",
     "Author": "Harbor",
-    "Version": "1.2.0",
+    "Version": "1.8.2",
     "Category": "Desktop",
     "MainCategory": "Tools",
     "Subcategory": "Time",
     "PreviewImage": "",
     "PreviewAccent": "",
     "Description": "See the time in another city without changing your PC\u2019s time zone.",
-    "Instructions": "Install to add another clock to your desktop; your Windows time zone stays the same.\nSet Time zone to a Windows zone name, such as Tokyo Standard Time or Eastern Standard Time.\nChoose a time format and click Apply settings. Drag the header to place it beside your local clock.",
+    "Instructions": "Install, then open Harbor\u0027s Apps screen to find the small World time control. Click it to expand the tool; click away or press Esc to collapse.\nSet Time zone to a Windows zone name, such as Tokyo Standard Time or Eastern Standard Time.\nChoose a time format and click Apply settings.\nRight-click the control for Visibility, Position and Appearance. Choose Apps screen only, Always available, or With chosen apps; choose several apps and keep the tool expanded while any is open. Drag to snap around the center box or any edge. Games still hide tools on their monitor.",
     "Kind": "widget",
     "Component": "world-clock",
     "Options": [
@@ -3178,6 +6786,135 @@
         "Label": "Time format",
         "Type": "text",
         "Default": "ddd HH:mm",
+        "Choices": []
+      },
+      {
+        "Key": "access",
+        "Label": "Access style",
+        "Type": "choice",
+        "Default": "Edge tab",
+        "Choices": [
+          "Edge tab",
+          "Floating control",
+          "Dock button",
+          "Desktop panel"
+        ]
+      },
+      {
+        "Key": "visibility",
+        "Label": "When this tool appears",
+        "Type": "choice",
+        "Default": "Apps screen only",
+        "Choices": [
+          "Always available",
+          "Apps screen only",
+          "With chosen apps"
+        ]
+      },
+      {
+        "Key": "visible-apps",
+        "Label": "Chosen apps (one executable path, name or app ID per line)",
+        "Type": "multiline",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "snap",
+        "Label": "Snap position",
+        "Type": "choice",
+        "Default": "Auto",
+        "Choices": [
+          "Auto",
+          "Center box: upper left",
+          "Center box: upper right",
+          "Center box: lower left",
+          "Center box: lower right",
+          "Top left",
+          "Top center",
+          "Top right",
+          "Right center",
+          "Bottom right",
+          "Bottom center",
+          "Bottom left",
+          "Left center",
+          "Left",
+          "Right",
+          "Top",
+          "Bottom",
+          "Free"
+        ]
+      },
+      {
+        "Key": "always-on",
+        "Label": "Always on (keep the expanded tool visible)",
+        "Type": "choice",
+        "Default": "No",
+        "Choices": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "Key": "compact-format",
+        "Label": "Custom compact format (blank uses the tool\u0027s mode)",
+        "Type": "text",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "edge",
+        "Label": "Screen edge",
+        "Type": "choice",
+        "Default": "Right",
+        "Choices": [
+          "Left",
+          "Right"
+        ]
+      },
+      {
+        "Key": "compact-reading",
+        "Label": "Compact control content",
+        "Type": "choice",
+        "Default": "Live reading",
+        "Choices": [
+          "Live reading",
+          "Name",
+          "Icon only"
+        ]
+      },
+      {
+        "Key": "control-size",
+        "Label": "Compact control height",
+        "Type": "number",
+        "Default": "36",
+        "Choices": []
+      },
+      {
+        "Key": "control-width",
+        "Label": "Compact control width",
+        "Type": "number",
+        "Default": "112",
+        "Choices": []
+      },
+      {
+        "Key": "transition-ms",
+        "Label": "Expansion animation, milliseconds",
+        "Type": "number",
+        "Default": "180",
+        "Choices": []
+      },
+      {
+        "Key": "control-x",
+        "Label": "Floating control horizontal position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
+        "Choices": []
+      },
+      {
+        "Key": "control-y",
+        "Label": "Control vertical position, 0 to 1 (blank for automatic)",
+        "Type": "number",
+        "Default": "",
         "Choices": []
       },
       {
@@ -3221,7 +6958,7 @@
       },
       {
         "Key": "opacity",
-        "Label": "Opacity, 0.2 to 1",
+        "Label": "Opacity, 0.005 to 1",
         "Type": "number",
         "Default": "1",
         "Choices": []
@@ -3229,7 +6966,7 @@
     ],
     "Values": {},
     "Layout": null,
-    "MinimumHarborVersion": "0.1.0",
+    "MinimumHarborVersion": "0.14.2",
     "Tags": [
       "tools",
       "time",
@@ -3244,6 +6981,6 @@
     ],
     "Dependencies": [],
     "Conflicts": [],
-    "Summary": "Widget \u00B7 Harbor"
+    "Summary": "Tool \u00B7 Harbor"
   }
 ]

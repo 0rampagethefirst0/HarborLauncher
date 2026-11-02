@@ -44,7 +44,7 @@ public sealed class ModDefinition
     public List<string> Tags { get; set; } = new();
     public List<ModDependency> Dependencies { get; set; } = new();
     public List<string> Conflicts { get; set; } = new();
-    public string Summary => Kind == "tweak" ? "Behavior mod · " + Category : Kind == "theme" ? "Theme · " + Author : "Widget · " + Author;
+    public string Summary => Kind == "feature" ? "Feature plugin · " + Author : Kind == "tweak" ? "Behavior mod · " + Category : Kind == "theme" ? "Theme · " + Author : "Tool · " + Author;
     public override string ToString() => Name;
 }
 
@@ -59,7 +59,9 @@ internal sealed class Mods
     internal static readonly HashSet<string> Components = new(StringComparer.OrdinalIgnoreCase) { "clock", "world-clock", "system", "network", "storage", "uptime", "notes", "tasks", "focus", "stopwatch", "calculator", "converter", "folders", "clipboard", "layouts", "launchpad", "dashboard" };
     internal Mods(Settings settings)
     {
+        bool existingProfile = settings.ModsInitialized;
         this.settings = settings;
+        ShellFeatures.Bind(settings, this);
         Catalog = Bundled();
         Directory.CreateDirectory(Store);
         foreach (string path in Directory.EnumerateFiles(Store, "manifest.json", SearchOption.AllDirectories))
@@ -77,12 +79,18 @@ internal sealed class Mods
             try { foreach (var mod in JsonSerializer.Deserialize<List<ModDefinition>>(File.ReadAllText(path), Json) ?? new()) { Validate(mod); Upsert(mod); } } catch (Exception ex) { Log.Write("Catalog skipped: " + ex.Message); }
         if (!settings.ModsInitialized)
         {
-            foreach (string id in new[] { "harbor.clock", "harbor.system" }) { Install(Catalog.First(m => m.Id == id), false); settings.EnabledMods.Add(id); }
             settings.ModsInitialized = true; settings.Save();
         }
-        Sort();
+        ShellFeatures.Initialize(settings, this, existingProfile); Sort();
     }
-    void Upsert(ModDefinition mod) { int i = Catalog.FindIndex(m => m.Id.Equals(mod.Id, StringComparison.OrdinalIgnoreCase)); if (i < 0) Catalog.Add(mod); else Catalog[i] = mod; }
+    void Upsert(ModDefinition mod)
+    {
+        int i = Catalog.FindIndex(m => m.Id.Equals(mod.Id, StringComparison.OrdinalIgnoreCase));
+        if (i < 0) { Catalog.Add(mod); return; }
+        if (System.Version.Parse(Catalog[i].Version) > System.Version.Parse(mod.Version)) return;
+        Catalog[i] = mod;
+    }
+    internal void NotifyChanged() { ShellFeatures.Sync(settings, this); Changed?.Invoke(); }
     void Sort() => Catalog = Catalog.OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     internal IEnumerable<ModDefinition> Enabled => settings.EnabledMods.Select(id => installed.GetValueOrDefault(id)).OfType<ModDefinition>();
     internal bool Installed(ModDefinition mod) => installed.ContainsKey(mod.Id);
@@ -94,19 +102,20 @@ internal sealed class Mods
     internal void Set(ModDefinition mod, string key, string value, bool rebuild = true)
     {
         if (!settings.ModOptions.TryGetValue(mod.Id, out var options)) settings.ModOptions[mod.Id] = options = new();
-        options[key] = value; settings.Save(); if (rebuild) Changed?.Invoke();
+        options[key] = value; if (key == "access" && value == PluginPresentation.Dock) ShellFeatures.Request(settings, "top-dock", true); settings.Save(); if (rebuild) NotifyChanged();
     }
     internal void Configure(ModDefinition mod, IReadOnlyDictionary<string, string> values)
     {
         if (!settings.ModOptions.TryGetValue(mod.Id, out var options)) settings.ModOptions[mod.Id] = options = new();
         foreach (var option in mod.Options) if (values.TryGetValue(option.Key, out var value)) options[option.Key] = value;
+        if (values.GetValueOrDefault("access") == PluginPresentation.Dock) ShellFeatures.Request(settings, "top-dock", true);
         settings.Save();
     }
     internal void Install(ModDefinition mod, bool notify = true)
     {
         Validate(mod); string folder = Path.Combine(Store, mod.Id); Directory.CreateDirectory(folder);
         Atomic(Path.Combine(folder, "manifest.json"), JsonSerializer.Serialize(mod, Json)); installed[mod.Id] = mod;
-        if (notify) Changed?.Invoke();
+        if (notify) NotifyChanged();
     }
     internal ModDefinition Create(ModDefinition original, string name, string author)
     {
@@ -114,9 +123,9 @@ internal sealed class Mods
         string slug = Regex.Replace(name.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-'); if (slug.Length == 0) slug = "mod";
         mod.Id = "local." + slug[..Math.Min(50, slug.Length)] + "." + Guid.NewGuid().ToString("N")[..6]; mod.Name = name; mod.Author = author; mod.Version = "1.0.0";
         foreach (var option in mod.Options) option.Default = Value(original, option.Key);
-        Validate(mod); Install(mod, false); Upsert(mod); Sort(); Changed?.Invoke(); return mod;
+        Validate(mod); Install(mod, false); Upsert(mod); Sort(); NotifyChanged(); return mod;
     }
-    internal void UpdateDefinition(ModDefinition mod) { Validate(mod); Install(mod, false); Upsert(mod); Sort(); Changed?.Invoke(); }
+    internal void UpdateDefinition(ModDefinition mod) { Validate(mod); Install(mod, false); Upsert(mod); Sort(); NotifyChanged(); }
     internal void ExportConfigured(ModDefinition original, string path)
     {
         var mod = Read(JsonSerializer.Serialize(original, Json));
@@ -135,13 +144,13 @@ internal sealed class Mods
             if (plan.Conflicts.Count > 0 && !replaceConflicts) throw new InvalidDataException("Disable conflicting mods first: " + string.Join(", ", plan.Conflicts.Select(m => m.Name)));
             foreach (var item in plan.Enable) if (!Installed(item) || UpdateAvailable(item)) Install(item, false);
             foreach (var conflict in plan.Conflicts) DisableWithDependents(conflict.Id);
-            foreach (var item in plan.Enable) { settings.EnabledMods.RemoveAll(id => id.Equals(item.Id, StringComparison.OrdinalIgnoreCase)); settings.EnabledMods.Add(item.Id); }
+            foreach (var item in plan.Enable) { settings.EnabledMods.RemoveAll(id => id.Equals(item.Id, StringComparison.OrdinalIgnoreCase)); settings.EnabledMods.Add(item.Id); if (item.Kind == "feature") ShellFeatures.ActivatePreferences(settings, item.Component); if (item.Kind == "widget" && Value(item, "access") == PluginPresentation.Dock) ShellFeatures.Request(settings, "top-dock", true); }
         }
         else DisableWithDependents(mod.Id);
         settings.Save();
         }
         catch { settings.EnabledMods = previous; throw; }
-        Changed?.Invoke();
+        NotifyChanged();
     }
     void DisableWithDependents(string id)
     {
@@ -157,14 +166,13 @@ internal sealed class Mods
         foreach (var item in plan.Enable) if (!Installed(item) || UpdateAvailable(item)) Install(item, false);
         settings.EnabledMods = plan.Enable.Select(m => m.Id).ToList();
     }
-    internal void NotifyChanged() => Changed?.Invoke();
     internal void Uninstall(ModDefinition mod)
     {
         Enable(mod, false);
         // Only this manifest is removed. Keep the user's mod data for reinstall.
         string path = Path.Combine(Store, mod.Id, "manifest.json");
         if (File.Exists(path)) File.Delete(path);
-        installed.Remove(mod.Id); Changed?.Invoke();
+        installed.Remove(mod.Id); NotifyChanged();
     }
     internal int Import(string path)
     {
@@ -188,7 +196,7 @@ internal sealed class Mods
         if (incoming.Count == 1) Install(incoming[0], false);
         else { string dest = Path.Combine(Settings.DataDir, "Catalogs", "import-" + Guid.NewGuid().ToString("N") + ".json"); Atomic(dest, JsonSerializer.Serialize(incoming, Json)); }
         foreach (var mod in incoming) Upsert(mod);
-        Sort(); Changed?.Invoke(); return incoming.Count;
+        Sort(); NotifyChanged(); return incoming.Count;
     }
     internal static void Export(ModDefinition mod, string path)
     {
@@ -207,7 +215,7 @@ internal sealed class Mods
         var ids = incoming.Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var old = previous.Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         Catalog.RemoveAll(m => old.Contains(m.Id) && !ids.Contains(m.Id) && !Installed(m));
-        foreach (var mod in incoming) Upsert(mod); Sort(); Changed?.Invoke();
+        foreach (var mod in incoming) Upsert(mod); Sort(); NotifyChanged();
     }
     internal static ModDefinition Read(string json) { var mod = JsonSerializer.Deserialize<ModDefinition>(json, Json) ?? throw new InvalidDataException("Empty mod manifest."); Validate(mod); return mod; }
     internal static void Validate(ModDefinition mod)
@@ -216,7 +224,7 @@ internal sealed class Mods
         ModTaxonomy.Validate(mod);
         if (mod.Format is < 1 or > 3 || mod.Id == null || !Regex.IsMatch(mod.Id, @"^[a-z0-9][a-z0-9._-]{1,79}$")) throw new InvalidDataException("Invalid mod ID or package format.");
         if (string.IsNullOrWhiteSpace(mod.Name) || mod.Name.Length > 120 || mod.Description.Length > 8000 || mod.Instructions == null || mod.Instructions.Length > 8000 || !System.Version.TryParse(mod.Version, out _)) throw new InvalidDataException("Invalid mod metadata.");
-        if (mod.Kind != "theme" && !(mod.Kind == "widget" && Components.Contains(mod.Component)) && !(mod.Kind == "tweak" && mod.Format == 3 && Tweaks.Components.Contains(mod.Component))) throw new InvalidDataException("This mod needs a component that Harbor does not support yet.");
+        if (mod.Kind != "theme" && !(mod.Kind == "widget" && Components.Contains(mod.Component)) && !(mod.Kind == "tweak" && mod.Format == 3 && Tweaks.Components.Contains(mod.Component)) && !(mod.Kind == "feature" && mod.Format == 3 && ShellFeatures.Components.Contains(mod.Component))) throw new InvalidDataException("This mod needs a component that Harbor does not support yet.");
         if (!System.Version.TryParse(mod.MinimumHarborVersion, out _) || mod.Tags == null || mod.Tags.Count > 30 || mod.Tags.Any(t => t == null || t.Length > 60) || mod.Dependencies == null || mod.Dependencies.Count > 30 || mod.Dependencies.Any(d => d == null || d.Id == null || !Regex.IsMatch(d.Id, @"^[a-z0-9][a-z0-9._-]{1,79}$") || !System.Version.TryParse(d.MinimumVersion, out _)) || mod.Conflicts == null || mod.Conflicts.Count > 100 || mod.Conflicts.Any(id => id == null || !Regex.IsMatch(id, @"^[a-z0-9][a-z0-9._-]{1,79}$"))) throw new InvalidDataException("Invalid compatibility or dependency metadata.");
         if (mod.Component == "dashboard") { if (mod.Format < 2 || mod.Layout == null) throw new InvalidDataException("Custom widget layouts require format 2 and a layout."); WidgetLayout.Validate(mod.Layout); }
         if (mod.Options == null || mod.Options.Count > 100 || mod.Values == null || mod.Values.Count > 200 || mod.Values.Any(v => v.Value == null || v.Value.Length > 10000)) throw new InvalidDataException("Invalid mod options.");
@@ -226,17 +234,20 @@ internal sealed class Mods
     internal void ApplyTheme()
     {
         var theme = Enabled.LastOrDefault(m => m.Kind == "theme");
+        Theme.SetSkin(theme != null && Value(theme, "artwork", theme.Id == "harbor.tokyo-dragon" ? "Tokyo Dragon" : "Harbor") == "Tokyo Dragon" ? "tokyo-dragon" : "harbor");
         string Color(string key, string fallback) => theme == null ? fallback : Value(theme, key, fallback);
-        Theme.Palette(Color("background", settings.BackgroundColor), Color("panel", settings.PanelColor), Color("accent", settings.Accent), Color("text", settings.TextColor), Color("muted", settings.MutedColor), Color("raised", settings.RaisedColor), Color("border", settings.BorderColor));
+        string background = Color("background", settings.BackgroundColor), panel = Color("panel", settings.PanelColor), accent = Color("accent", settings.Accent);
+        string Derived(string from, string to, double amount) { try { return Theme.Mix((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(from), (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(to), amount).ToString(); } catch { return to; } }
+        Theme.Palette(background, panel, accent, Color("text", settings.TextColor), Color("muted", theme == null ? settings.MutedColor : Derived(accent, "#D7DCE5", .6)), Color("raised", theme == null ? settings.RaisedColor : Derived(panel, accent, .10)), Color("border", theme == null ? settings.BorderColor : Derived(panel, accent, .25)), Color("wallpaper", background), Color("logo", accent), Color("fire", accent));
     }
     static List<ModDefinition> Bundled()
     {
         var result = new List<ModDefinition>();
-        Add("clock", "Desktop Clock", "Desktop", "A large desktop clock with your own date and time format.", Opt("format", "Time format", "HH:mm"), Opt("dateFormat", "Date format", "dddd, MMMM d"));
+        Add("clock", "Clock", "Desktop", "A compact clock that opens its full date and time when you need it.", Opt("format", "Time format", "HH:mm"), Opt("dateFormat", "Date format", "dddd, MMMM d"));
         Add("world-clock", "World Clock", "Desktop", "Keep another time zone on your desktop. Uses Windows time zone names.", Opt("zone", "Time zone", "Tokyo Standard Time"), Opt("format", "Time format", "ddd HH:mm"));
-        Add("system", "System Monitor", "System", "CPU and memory usage with a live history graph.", Opt("history", "History in seconds", "60", "number"));
+        Add("system", "System Monitor", "System", "CPU and memory usage with a live history graph.", Opt("history", "History in seconds", "60", "number"), new ModOption { Key = "meter-mode", Label = "Compact meter mode", Type = "choice", Default = "CPU + RAM", Choices = new[] { "CPU + RAM", "CPU", "RAM" } });
         Add("network", "Network Meter", "System", "Live upload and download rates from your active network adapters.");
-        Add("storage", "Drive Space", "System", "Capacity and free space for your local drives.", Opt("drives", "Drive letters, comma separated", "C:,D:"));
+        Add("storage", "Drive Space", "System", "Capacity and free space for your local drives.", Opt("drives", "Drive letters, comma separated", "C:,D:"), new ModOption { Key = "drive-mode", Label = "Compact drive mode", Type = "choice", Default = "All drives", Choices = new[] { "All drives", "First drive", "Cycle drives", "Used percent" } });
         Add("uptime", "Uptime", "System", "See how long Windows has been running since its last full boot.");
         Add("notes", "Quick Notes", "Productivity", "An editable desktop note that saves locally as you type.", Opt("placeholder", "Note title", "Quick notes"));
         Add("tasks", "Checklist", "Productivity", "A desktop to-do list with saved checkboxes. Add one task per line in its settings.", Opt("items", "Tasks, one per line", "Make something useful\nTake a break", "multiline"));
@@ -248,6 +259,8 @@ internal sealed class Mods
         Add("clipboard", "Clipboard Shelf", "Productivity", "Keep recent copied text in memory. History clears when Harbor exits.", Opt("limit", "Items to remember", "12", "number"));
         Add("layouts", "Window Layouts", "Windows", "Keep Columns, Grid, Stack, and Undo within reach on the desktop.");
         Add("launchpad", "App Collection", "Productivity", "Make your own group of app and website shortcuts. One label | path per line.", Opt("apps", "Shortcuts", "Calculator | calc.exe\nNotepad | notepad.exe", "multiline"));
+        result.Add(new ModDefinition { Id = "harbor.tokyo-dragon", Name = "Tokyo Dragon", Kind = "theme", Component = "palette", Description = "A charcoal and crimson desktop with a simple 2D dragon outline. Every Harbor mark becomes an open dragon head.", MainCategory = "Themes", Subcategory = "Dark", Tags = new() { "red", "dragon", "outline", "minimal", "wallpaper", "dark" }, Options = new() { new ModOption { Key = "artwork", Label = "Wallpaper and logo", Type = "choice", Default = "Tokyo Dragon", Choices = new[] { "Tokyo Dragon", "Harbor" } }, Opt("background", "Background", "#0C0C10", "color"), Opt("panel", "Panels", "#171216", "color"), Opt("accent", "Accent", "#F33D4F", "color"), Opt("text", "Text", "#F7ECEE", "color"), Opt("muted", "Secondary text", "#B99CA3", "color"), Opt("raised", "Raised surfaces", "#2A1B22", "color"), Opt("border", "Borders", "#57313C", "color") } });
+        result.Last().Description = "Red outline wallpaper and a spinning 3D dragon. Fire reveals Home, then the logo returns to its saved angle. Every Harbor color can be changed.";
         foreach (var palette in new[] { ("midnight", "Midnight", "#111523", "#1A2034", "#9AAEFF"), ("forest", "Forest", "#111D1A", "#1A2C25", "#84D4AC"), ("ember", "Ember", "#211715", "#342420", "#FFB08A"), ("plum", "Plum", "#1C1525", "#2D2239", "#D0A3EE") })
             result.Add(new ModDefinition { Id = "harbor." + palette.Item1, Name = palette.Item2, Category = "Themes", Kind = "theme", Description = "A native color theme. Every color can be changed independently.", Options = new() { Opt("background", "Bar background", palette.Item3, "color"), Opt("panel", "Panel background", palette.Item4, "color"), Opt("accent", "Accent", palette.Item5, "color"), Opt("text", "Text", "#EDF1FA", "color") } });
         Dashboard("sound-desk", "Sound Desk", "System volume and media controls in one customizable panel.", new WidgetNode { Children = new() {
@@ -255,7 +268,7 @@ internal sealed class Mods
             Row(Button("Quieter", "volume-down"), Button("Mute", "mute"), Button("Louder", "volume-up")),
             new WidgetNode { Type = "divider" }, Row(Button("Previous", "previous"), Button("Play / pause", "play-pause"), Button("Next", "next")) } });
         Dashboard("resource-desk", "Resource Desk", "A configurable system dashboard with CPU, memory, disk space, and uptime.", new WidgetNode { Children = new() {
-            Text("CPU {cpu:0}%   RAM {ram:0}%", 23), Row(new WidgetNode { Type = "progress", Source = "cpu" }, new WidgetNode { Type = "progress", Source = "ram", Color = "#84D4AC" }),
+            Text("CPU {cpu:0}%   RAM {ram:0}%", 23), Row(new WidgetNode { Type = "progress", Source = "cpu" }, new WidgetNode { Type = "progress", Source = "ram" }),
             Text("C: {disk.C.free:0.0} GB free", 17), new WidgetNode { Type = "progress", Source = "disk.C.used" }, Text("Uptime {uptime}", 13), Button("Open Task Manager", "launch", "taskmgr.exe") } });
         Dashboard("day-planner", "Day Planner", "Combine a checklist, focus timer, and saved notes. Each part can be changed in the builder.", new WidgetNode { Children = new() {
             Text("{date:dddd, MMM d}", 22), Text("{time:HH:mm}", 34),
@@ -266,7 +279,16 @@ internal sealed class Mods
             Text("{windows} open windows", 22), Row(Button("Apps", "apps"), Button("Files", "files"), Button("Alerts", "notifications")),
             new WidgetNode { Type = "component", Key = "layouts", Component = "layouts", Text = "Layouts" }, Button("Show desktop", "desktop") } });
         result.AddRange(TweakPackages.All());
-        foreach (var mod in result) { mod.Version = "1.2.0"; mod.Description = ModCopy.Description(mod.Id) ?? mod.Description; mod.Instructions = ModHelp.Build(mod); ModTaxonomy.Enrich(mod); }
+        result.First(m => m.Id == "harbor.resource-desk").Options.Add(new ModOption { Key = "meter-mode", Label = "Compact meter mode", Type = "choice", Default = "CPU + RAM", Choices = new[] { "CPU + RAM", "CPU", "RAM" } });
+        result.AddRange(ShellFeatures.Packages());
+        foreach (var theme in result.Where(m => m.Kind == "theme"))
+        {
+            string Value(string key) => theme.Options.First(o => o.Key == key).Default;
+            string Mix(string a, string b, double t) => Theme.Mix((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(a), (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(b), t).ToString();
+            foreach (var color in new[] { ("muted", "Secondary text", Mix(Value("accent"), "#D7DCE5", .6)), ("raised", "Raised surfaces", Mix(Value("panel"), Value("accent"), .1)), ("border", "Borders", Mix(Value("panel"), Value("accent"), .25)), ("wallpaper", "Wallpaper", Value("background")), ("logo", "Logo and artwork", Value("accent")), ("fire", "Dragon fire", theme.Id == "harbor.tokyo-dragon" ? "#FF8055" : Value("accent")) }) if (!theme.Options.Any(o => o.Key == color.Item1)) theme.Options.Add(Opt(color.Item1, color.Item2, color.Item3, "color"));
+        }
+        foreach (var mod in result) { mod.Version = "1.8.2"; mod.MinimumHarborVersion = "0.14.2"; mod.Description = ModCopy.Description(mod.Id) ?? mod.Description; if (mod.Kind != "feature") mod.Instructions = ModHelp.Build(mod); ModTaxonomy.Enrich(mod); }
+        result.First(m => m.Id == "harbor.desktop-shortcuts").Instructions = "Enable Harbor Home in Mods. Optional features start disabled on a new profile.\nClick the blue emblem in the center of the desktop. Its ring expands into your app library.\nUse Desktop or All apps, categories and search. Drag an item onto a category to organize it without moving files; right-click for favorites and app actions.\nOpen Appearance to resize the emblem, turn rotation on or off, preview the startup intro or return to classic icons.";
         return result;
         void Dashboard(string id, string name, string description, WidgetNode layout) => result.Add(new ModDefinition { Format = 2, Id = "harbor." + id, Name = name, Category = "Dashboards", Description = description, Component = "dashboard", Layout = layout, Options = CommonOptions(360) });
         static WidgetNode Text(string text, double size) => new() { Type = "text", Text = text, FontSize = size };
@@ -280,11 +302,24 @@ internal sealed class Mods
         static ModOption Opt(string key, string label, string value, string type = "text") => new() { Key = key, Label = label, Default = value, Type = type };
     }
     internal static List<ModOption> CommonOptions(int width = 280) => new() {
+        new() { Key = "access", Label = "Access style", Type = "choice", Default = PluginPresentation.Edge, Choices = PluginPresentation.Modes },
+        new() { Key = "visibility", Label = "When this tool appears", Type = "choice", Default = PluginVisibility.Apps, Choices = PluginVisibility.Modes },
+        new() { Key = "visible-apps", Label = "Chosen apps (one executable path, name or app ID per line)", Type = "multiline", Default = "" },
+        new() { Key = "snap", Label = "Snap position", Type = "choice", Default = "Auto", Choices = PluginSnapping.Positions },
+        new() { Key = "always-on", Label = "Always on (keep the expanded tool visible)", Type = "choice", Default = "No", Choices = new[] { "No", "Yes" } },
+        new() { Key = "compact-format", Label = "Custom compact format (blank uses the tool's mode)", Default = "" },
+        new() { Key = "edge", Label = "Screen edge", Type = "choice", Default = "Right", Choices = new[] { "Left", "Right" } },
+        new() { Key = "compact-reading", Label = "Compact control content", Type = "choice", Default = "Live reading", Choices = new[] { "Live reading", "Name", "Icon only" } },
+        new() { Key = "control-size", Label = "Compact control height", Type = "number", Default = "36" },
+        new() { Key = "control-width", Label = "Compact control width", Type = "number", Default = "112" },
+        new() { Key = "transition-ms", Label = "Expansion animation, milliseconds", Type = "number", Default = "180" },
+        new() { Key = "control-x", Label = "Floating control horizontal position, 0 to 1 (blank for automatic)", Type = "number" },
+        new() { Key = "control-y", Label = "Control vertical position, 0 to 1 (blank for automatic)", Type = "number" },
         new() { Key = "width", Label = "Widget width", Type = "number", Default = width.ToString() },
         new() { Key = "screen", Label = "Show on", Type = "choice", Default = "primary", Choices = new[] { "primary", "all", "secondary" } },
         new() { Key = "background", Label = "Widget background (blank to follow theme)", Type = "color" },
         new() { Key = "border", Label = "Widget border (blank to follow theme)", Type = "color" },
         new() { Key = "radius", Label = "Corner radius", Type = "number", Default = "14" },
-        new() { Key = "opacity", Label = "Opacity, 0.2 to 1", Type = "number", Default = "1" }
+        new() { Key = "opacity", Label = "Opacity, 0.005 to 1", Type = "number", Default = "1" }
     };
 }

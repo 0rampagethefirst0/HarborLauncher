@@ -17,6 +17,7 @@ internal sealed class ModCatalog : Window
 {
     readonly Shell shell;
     readonly Grid body = new();
+    readonly ScrollViewer scroll = new() { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new Thickness(0, 0, 10, 0) };
     readonly TextBox search = new() { MinWidth = 220, Height = 36 };
     readonly TextBlock status = Theme.Label("", 12, Theme.Muted), count = Theme.Label("", 11, Theme.Muted);
     readonly StackPanel nav = new();
@@ -49,12 +50,12 @@ internal sealed class ModCatalog : Window
         search.ToolTip = "Search every category, plugin and tag"; AutomationProperties.SetName(search, "Search mods"); top.Children.Add(Theme.Placeholder(search, "Search plugins, creators or tags")); DockPanel.SetDock(top, System.Windows.Controls.Dock.Top); content.Children.Add(top); content.Children.Add(body); layout.Children.Add(content); root.Children.Add(layout); Content = root;
         search.TextChanged += (_, _) => { debounce.Stop(); debounce.Start(); };
         debounce.Tick += (_, _) => { debounce.Stop(); if (search.Text.Trim().Length > 0) screen = "catalog"; page = 0; Render(); };
-        slides.Tick += (_, _) => { if (screen == "showcase" && IsActive && !body.IsMouseOver && shell.Config.DockMotionMilliseconds > 0) { slide = (slide + 1) % Featured(main).Count; Render(); } };
+        slides.Tick += (_, _) => { if (screen == "showcase" && IsActive && !body.IsMouseOver && shell.Config.DockMotionMilliseconds > 0) { slide = (slide + 1) % Featured(main).Count; Render(true); } };
         shell.Mods.Changed += OnChanged;
         Loaded += async (_, _) => { if (Settings.TestDataDir != null) return; try { await Community.Refresh(shell.Mods); } catch (Exception ex) { status.Text = "Offline catalog available. Community: " + ex.Message; } };
         Closed += (_, _) => { shell.Mods.Changed -= OnChanged; debounce.Stop(); slides.Stop(); };
         Activated += (_, _) => { if (screen == "showcase") slides.Start(); }; Deactivated += (_, _) => slides.Stop();
-        Render();
+        body.Children.Add(scroll); Motion.SmoothScroll(scroll); Render();
     }
     Button NavButton(string text, string icon, Action click)
     {
@@ -74,23 +75,23 @@ internal sealed class ModCatalog : Window
         }
         nav.Children.Add(new Border { Height = 1, Background = Theme.Line, Margin = new Thickness(8, 16, 8, 12) });
         nav.Children.Add(NavButton("All plugins", "apps", () => Navigate("", true)));
-        foreach (string v in new[] { "Installed", "Favorites", "Updates" })
+        foreach (string v in new[] { "Features", "Installed", "Favorites", "Updates" })
         { var b = NavButton(v, v == "Favorites" ? "pin" : "mods", () => { main = ""; sub = "All"; tag = "All tags"; library = v; screen = "catalog"; page = 0; Render(); }); if (library == v) b.Background = Theme.Raised; nav.Children.Add(b); }
     }
     void Render(bool keepPosition = false)
     {
         if (rendering) return; rendering = true;
         try {
-            double offset = keepPosition && body.Children.OfType<ScrollViewer>().FirstOrDefault() is ScrollViewer previous ? previous.VerticalOffset : 0;
+            using var viewport = ScrollPosition.Keep(scroll, keepPosition);
             Dictionary<string, string>? edits = keepPosition && screen == "detail" ? new(draft) : null;
-            slides.Stop(); body.Children.Clear(); Navigation();
+            slides.Stop(); Navigation();
             count.Text = $"{shell.Mods.Catalog.Count} packages · {shell.Mods.Catalog.Count(shell.Mods.Installed)} installed";
-            var panel = new StackPanel(); var scroll = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new Thickness(0, 0, 10, 0) }; body.Children.Add(scroll);
+            var panel = new StackPanel();
             if (screen == "home") Home(panel);
             else if (screen == "showcase") { Showcase(panel); if (IsActive) slides.Start(); }
             else if (screen == "detail") { var mod = shell.Mods.Catalog.FirstOrDefault(m => m.Id == selected); if (mod != null) Details(panel, mod, edits); else { screen = "catalog"; Catalog(panel); } }
             else Catalog(panel);
-            if (keepPosition) scroll.ScrollToVerticalOffset(offset); else CatalogMotion.Enter(panel, shell.Config);
+            scroll.Content = panel; if (!keepPosition) CatalogMotion.Enter(panel, shell.Config);
         } finally { rendering = false; }
     }
     void Home(StackPanel panel)
@@ -144,7 +145,7 @@ internal sealed class ModCatalog : Window
     {
         string term = search.Text.Trim(); return shell.Mods.Catalog.Where(m => (main.Length == 0 || ModTaxonomy.MainOf(m) == main) && (sub == "All" || ModTaxonomy.SubOf(m) == sub) && (tag == "All tags" || m.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)) &&
             (m.Name + " " + m.Id + " " + m.Author + " " + m.Description + " " + ModTaxonomy.MainOf(m) + " " + ModTaxonomy.SubOf(m) + " " + string.Join(" ", m.Tags)).Contains(term, StringComparison.CurrentCultureIgnoreCase) &&
-            (library switch { "Installed" => shell.Mods.Installed(m), "Enabled" => shell.Mods.EnabledMod(m), "Updates" => shell.Mods.UpdateAvailable(m), "Favorites" => shell.Config.FavoriteMods.Contains(m.Id), "Behavior mods" => m.Kind == "tweak", "Widgets" => m.Kind == "widget", _ => true }));
+            (library switch { "Features" => m.Kind == "feature", "Installed" => shell.Mods.Installed(m), "Enabled" => shell.Mods.EnabledMod(m), "Updates" => shell.Mods.UpdateAvailable(m), "Favorites" => shell.Config.FavoriteMods.Contains(m.Id), "Behavior mods" => m.Kind == "tweak", "Widgets" => m.Kind == "widget", _ => true }));
     }
     void Catalog(StackPanel panel)
     {
@@ -178,6 +179,7 @@ internal sealed class ModCatalog : Window
     }
     Button InstallButton(ModDefinition mod)
     {
+        if (mod.Kind == "feature") { bool enabled = shell.Mods.EnabledMod(mod); var toggle = Theme.Button(enabled ? "Disable" : "Enable", (enabled ? "Disable " : "Enable ") + mod.Name, () => Try(() => { shell.Mods.Enable(mod, !enabled, true); status.Text = mod.Name + (enabled ? " disabled. Layout kept." : " enabled."); })); toggle.Background = enabled ? Theme.Raised : Theme.Accent; return toggle; }
         bool installed = shell.Mods.Installed(mod); var plan = installed ? null : shell.Mods.PlanEnable(mod);
         var button = Theme.Button(installed ? "Uninstall" : "Install", installed ? "Uninstall " + mod.Name : plan?.Conflicts.Count > 0 ? "Install and replace " + string.Join(", ", plan.Conflicts.Select(m => m.Name)) : "Install and enable " + mod.Name, () => Try(() => {
             if (installed) { shell.Mods.Uninstall(mod); status.Text = mod.Name + " uninstalled. Your settings are kept."; }
@@ -186,6 +188,8 @@ internal sealed class ModCatalog : Window
         button.Background = installed ? Theme.Raised : ModBanner.Accent(ModTaxonomy.MainOf(mod)); button.Foreground = installed ? Theme.Text : Theme.Brush("#16202D"); button.Margin = new Thickness(0, 0, 8, 0); button.IsEnabled = installed || plan?.Errors.Count == 0; if (!button.IsEnabled) button.ToolTip = string.Join(" ", plan!.Errors); return button;
     }
     void OpenDetails(ModDefinition mod) { selected = mod.Id; screen = "detail"; Render(); }
+    internal void SelectPlugin(ModDefinition mod) => OpenDetails(mod);
+    internal void ShowFeatures() { main = ""; library = "Features"; screen = "catalog"; page = 0; Render(); }
     void Details(StackPanel panel, ModDefinition mod, Dictionary<string, string>? edits = null)
     {
         var back = Theme.Button("← Back to mods", "Back to mods", () => { screen = "catalog"; Render(); }); back.HorizontalAlignment = HorizontalAlignment.Left; back.Margin = new Thickness(0, 0, 0, 15); panel.Children.Add(back);
@@ -194,8 +198,11 @@ internal sealed class ModCatalog : Window
         hero.Children.Add(new ModBanner(mod, shell, 280, true) { Margin = new Thickness(0, 0, 16, 0), VerticalAlignment = VerticalAlignment.Center }); var usage = UsageCard(mod); Grid.SetColumn(usage, 1); hero.Children.Add(usage); panel.Children.Add(hero);
         var tags = new WrapPanel { Margin = new Thickness(0, 0, 0, 14) }; foreach (string t in mod.Tags) tags.Children.Add(Chip(t, () => { tag = t; main = ""; sub = "All"; screen = "catalog"; page = 0; Render(); }, true)); panel.Children.Add(tags);
         var actions = new WrapPanel { Margin = new Thickness(0, 0, 0, 15) }; actions.Children.Add(InstallButton(mod));
+        if (mod.Kind == "feature") { actions.Children.Add(Theme.Button("Customize feature", "Open controls for " + mod.Name, () => { if (!shell.Mods.EnabledMod(mod)) shell.Mods.Enable(mod, true, true); shell.CustomizeFeature(mod); })); if (shell.Mods.Installed(mod)) actions.Children.Add(Theme.Button("Uninstall", "Remove this feature plugin; keep its saved layout", () => Try(() => shell.Mods.Uninstall(mod)))); }
         actions.Children.Add(Theme.Button("Larger preview", "Open a larger animated demonstration", () => new ModPreviewWindow(shell, mod) { Owner = this }.Show()));
         if (shell.Mods.Installed(mod)) actions.Children.Add(Theme.Button(shell.Mods.EnabledMod(mod) ? "Pause" : "Resume", "Toggle this mod without uninstalling", () => Try(() => { Commit(mod); shell.Mods.Enable(mod, !shell.Mods.EnabledMod(mod), true); })));
+        if (mod.Kind == "widget" && shell.Mods.EnabledMod(mod)) actions.Children.Add(Theme.Button("Open tool", "Open " + mod.Name + " without leaving it on the desktop", () => shell.OpenPlugin(mod.Id, shell.CurrentMonitor())));
+        if (mod.Kind == "widget") actions.Children.Add(Theme.Button("Control settings", "Visibility, app rules, position and compact appearance", () => shell.Plugins.Customize(mod, shell.CurrentMonitor())));
         if (shell.Mods.UpdateAvailable(mod)) actions.Children.Add(Theme.Button("Update", "Update this mod", () => Try(() => { if (shell.Mods.EnabledMod(mod)) shell.Mods.Enable(mod, true, true); else shell.Mods.Install(mod); })));
         actions.Children.Add(Theme.Button(shell.Config.FavoriteMods.Contains(mod.Id) ? "Unfavorite" : "Favorite", "Toggle favorite", () => Try(() => { if (!shell.Config.FavoriteMods.Remove(mod.Id)) shell.Config.FavoriteMods.Add(mod.Id); shell.Config.Save(); Render(); })));
         actions.Children.Add(Theme.Button("Make your own", "Create an independent plugin", () => new ModCreator(shell, mod, false, created => OpenDetails(created)) { Owner = this }.Show()));
@@ -210,15 +217,19 @@ internal sealed class ModCatalog : Window
             Text(panel, "App patterns match executable names, full paths or packaged app IDs. * matches any text; ? matches one character. A blank app list matches nothing. Window effects pause on the active game’s monitor.", 12, true, 10);
         }
         draft.Clear(); foreach (var option in mod.Options) draft[option.Key] = edits?.GetValueOrDefault(option.Key) ?? shell.Mods.Value(mod, option.Key);
-        if (mod.Options.Count > 0) Text(panel, "Plugin settings", 20, marginTop: 20);
-        foreach (var option in mod.Options)
+        if (mod.Options.Count > 0) Text(panel, mod.Kind == "widget" ? "Access and tool settings" : "Plugin settings", 20, marginTop: 20);
+        var advanced = new StackPanel();
+        var advancedKeys = new HashSet<string> { "width", "background", "border", "radius", "opacity", "edge", "control-size", "control-width", "control-x", "control-y", "transition-ms" };
+        foreach (var option in mod.Options.OrderBy(o => mod.Kind != "widget" ? 0 : o.Key == "access" ? 0 : o.Key == "compact-reading" ? 1 : o.Key == "screen" ? 2 : 3))
         {
-            Text(panel, option.Label, 13, marginTop: 8);
-            Text(panel, ModHelp.OptionHint(mod, option), 13, true);
-            if (option.Type == "choice") { var box = new ComboBox { ItemsSource = option.Choices, SelectedItem = draft[option.Key], MinHeight = 34, MaxWidth = 580, HorizontalAlignment = HorizontalAlignment.Left, MinWidth = 260 }; AutomationProperties.SetName(box, option.Label); box.SelectionChanged += (_, _) => { if (box.SelectedItem is string value) draft[option.Key] = value; }; panel.Children.Add(box); }
-            else { var box = new TextBox { Text = draft[option.Key], AcceptsReturn = option.Type == "multiline", MinHeight = option.Type == "multiline" ? 90 : 34, MaxLength = 10000, TextWrapping = TextWrapping.Wrap, MaxWidth = 730, HorizontalAlignment = HorizontalAlignment.Stretch }; AutomationProperties.SetName(box, option.Label); box.TextChanged += (_, _) => draft[option.Key] = box.Text; panel.Children.Add(box); }
+            var destination = mod.Kind == "widget" && advancedKeys.Contains(option.Key) ? advanced : panel;
+            Text(destination, option.Label, 13, marginTop: 8);
+            Text(destination, ModHelp.OptionHint(mod, option), 13, true);
+            if (option.Type == "choice") { var box = new ComboBox { ItemsSource = option.Choices, SelectedItem = draft[option.Key], MinHeight = 34, MaxWidth = 580, HorizontalAlignment = HorizontalAlignment.Left, MinWidth = 260 }; AutomationProperties.SetName(box, option.Label); box.SelectionChanged += (_, _) => { if (box.SelectedItem is string value) draft[option.Key] = value; }; destination.Children.Add(box); }
+            else { var box = new TextBox { Text = draft[option.Key], AcceptsReturn = option.Type == "multiline", MinHeight = option.Type == "multiline" ? 90 : 34, MaxLength = 10000, TextWrapping = TextWrapping.Wrap, MaxWidth = 730, HorizontalAlignment = HorizontalAlignment.Stretch }; AutomationProperties.SetName(box, option.Label); box.TextChanged += (_, _) => draft[option.Key] = box.Text; destination.Children.Add(box); }
         }
-        if (mod.Options.Count > 0) { var buttons = new WrapPanel { Margin = new Thickness(0, 20, 0, 20) }; buttons.Children.Add(Theme.Button("Apply settings", "Apply plugin settings", () => Try(() => { Commit(mod); shell.RebuildMods(); status.Text = "Settings applied."; }))); buttons.Children.Add(Theme.Button("Reset", "Reset plugin settings", () => Try(() => { shell.Mods.Configure(mod, mod.Options.ToDictionary(o => o.Key, o => o.Default)); shell.RebuildMods(); Render(); }))); panel.Children.Add(buttons); }
+        if (advanced.Children.Count > 0) panel.Children.Add(new Expander { Header = "Appearance and placement", Content = advanced, IsExpanded = false, Foreground = Theme.Text, Margin = new Thickness(0, 20, 0, 0), FontSize = 14 });
+        if (mod.Options.Count > 0) { var buttons = new WrapPanel { Margin = new Thickness(0, 20, 0, 20) }; buttons.Children.Add(Theme.Button("Apply settings", "Apply plugin settings", () => Try(() => { Commit(mod); shell.RebuildMods(); status.Text = "Settings applied."; }))); buttons.Children.Add(Theme.Button("Reset", "Reset plugin settings", () => Try(() => { shell.Mods.Configure(mod, mod.Options.ToDictionary(o => o.Key, o => o.Default)); shell.RebuildMods(); Render(true); }))); panel.Children.Add(buttons); }
     }
     void Create() => new ModCreator(shell, null, false, created => OpenDetails(created)) { Owner = this }.Show();
     static FrameworkElement UsageCard(ModDefinition mod)

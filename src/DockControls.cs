@@ -1,6 +1,5 @@
 using System;
 using System.Windows;
-using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -13,58 +12,55 @@ internal sealed class DockControls : Window
 {
     readonly Shell shell;
     readonly DispatcherTimer save = new() { Interval = TimeSpan.FromMilliseconds(220) };
-    readonly TextBlock status = Theme.Label("", 11, Theme.Muted);
+    readonly TextBlock status = Theme.Label("Changes save automatically", 11, Theme.Muted);
+    readonly StackPanel body = new(), tabs = new() { Orientation = Orientation.Horizontal };
+    readonly ScrollViewer scroll;
+    string page = "Style";
     bool dirty;
     internal DockControls(Shell shell, IntPtr monitor, Native.Rect dockBounds)
     {
-        this.shell = shell; Title = "Harbor — taskbar controls"; Theme.PopupWindow(this, 370, 430, monitor, true);
-        var body = new StackPanel { Margin = new Thickness(20, 17, 20, 17) };
-        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14) }; var close = Theme.IconButton("\uE8BB", "Close dock controls", Close); close.Padding = new Thickness(5); DockPanel.SetDock(close, System.Windows.Controls.Dock.Right); header.Children.Add(close); header.Children.Add(new TextBlock { Text = "Taskbar controls", FontSize = 21, FontWeight = FontWeights.SemiBold }); body.Children.Add(header);
-        Toggle("Click-through on hover", shell.Config.DockHoverThrough, value => shell.Config.DockHoverThrough = value);
-        Toggle("Stay faded while typing", shell.Config.DockQuietWhileTyping, value => shell.Config.DockQuietWhileTyping = value);
-        Slider("Faded opacity", 20, 80, shell.Config.DockFadeOpacity * 100, "%", value => shell.Config.DockFadeOpacity = value / 100);
-        Slider("Active after leaving", 1, 10, shell.Config.DockInteractionDelay / 1000.0, "s", value => shell.Config.DockInteractionDelay = (int)value * 1000);
-        Slider("Icon size", 24, 44, shell.Config.IconSize, "px", value => shell.Config.IconSize = (int)value);
-        Slider("Motion duration", 0, 350, shell.Config.DockMotionMilliseconds, "ms", value => shell.Config.DockMotionMilliseconds = (int)value);
-        body.Children.Add(new Border { Height = 1, Background = Theme.Line, Margin = new Thickness(0, 7, 0, 9) });
-        var footer = new DockPanel(); DockPanel.SetDock(status, System.Windows.Controls.Dock.Right); footer.Children.Add(status); footer.Children.Add(Theme.Label("Right-click once to activate; again for menus.", 10, Theme.Muted)); body.Children.Add(footer);
-        var card = Theme.Card(body, 17); var offset = new TranslateTransform(); card.RenderTransform = offset; Content = card;
+        this.shell = shell; Title = "Harbor — taskbar controls"; Theme.PopupWindow(this, 420, (int)Math.Min(630, Native.Monitor(monitor).Work.Height / Native.Scale(monitor) - 24), monitor, true);
+        var root = new DockPanel { Margin = new Thickness(18) };
+        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 12) }; var close = Theme.Button(UiIcons.Icon("close"), "Close taskbar controls", Close); close.Padding = new Thickness(6); DockPanel.SetDock(close, System.Windows.Controls.Dock.Right); header.Children.Add(close); header.Children.Add(Theme.Label("Taskbar", 23)); DockPanel.SetDock(header, System.Windows.Controls.Dock.Top); root.Children.Add(header);
+        tabs.Margin = new Thickness(0, 0, 0, 12); DockPanel.SetDock(tabs, System.Windows.Controls.Dock.Top); root.Children.Add(tabs);
+        status.Margin = new Thickness(2, 10, 0, 0); DockPanel.SetDock(status, System.Windows.Controls.Dock.Bottom); root.Children.Add(status);
+        scroll = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }; Motion.SmoothScroll(scroll); root.Children.Add(scroll);
+        var card = Theme.Card(root, 17); var offset = new TranslateTransform(); card.RenderTransform = offset; Content = card;
         SourceInitialized += (_, _) =>
         {
-            double scale = Native.Scale(monitor); var work = Native.Monitor(monitor).Monitor;
-            int width = (int)(Width * scale), height = (int)(Height * scale);
+            double scale = Native.Scale(monitor); var work = Native.Monitor(monitor).Monitor; int width = (int)(Width * scale), height = (int)(Height * scale);
             int x = Math.Clamp((dockBounds.Left + dockBounds.Right - width) / 2, work.Left + 10, Math.Max(work.Left + 10, work.Right - width - 10));
             int y = Math.Max(work.Top + shell.Config.TopBarHeight + 8, dockBounds.Top - height - 10);
-            Native.SetWindowPos(new WindowInteropHelper(this).Handle, new IntPtr(-1), x, y, width, height, 0x50);
+            Native.SetWindowPos(new WindowInteropHelper(this).Handle, new IntPtr(-1), x, y, width, height, 0x10);
         };
-        Loaded += (_, _) =>
-        {
-            int ms = shell.Config.DockMotionMilliseconds;
-            if (ms <= 0 || Settings.TestDataDir != null) return;
-            var duration = TimeSpan.FromMilliseconds(ms);
-            offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(22, 0, duration) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop });
-            card.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { FillBehavior = FillBehavior.Stop });
-        };
-        save.Tick += (_, _) => Commit(); Closed += (_, _) => { save.Stop(); Commit(); }; Theme.CloseOnDeactivate(this);
-        void Toggle(string title, bool initial, Action<bool> set)
-        {
-            var box = new CheckBox { Content = UiIcons.Label(title, 13), Style = (Style)FindResource("Harbor.Switch"), IsChecked = initial, FontSize = 13, Margin = new Thickness(0, 4, 0, 8) }; AutomationProperties.SetName(box, title);
-            box.Checked += (_, _) => { set(true); Changed(); }; box.Unchecked += (_, _) => { set(false); Changed(); }; body.Children.Add(box);
-        }
-        void Slider(string title, double min, double max, double initial, string unit, Action<double> set)
-        {
-            var row = new DockPanel { Margin = new Thickness(0, 9, 0, 0) }; var value = Theme.Label(initial.ToString("0") + " " + unit, 11, Theme.Muted); DockPanel.SetDock(value, System.Windows.Controls.Dock.Right); row.Children.Add(value); row.Children.Add(UiIcons.Label(title, 12)); body.Children.Add(row);
-            var slider = new Slider { Minimum = min, Maximum = max, Value = initial, TickFrequency = unit == "ms" ? 10 : 1, IsSnapToTickEnabled = true, Margin = new Thickness(0, 3, 0, 0) }; AutomationProperties.SetName(slider, title);
-            slider.ValueChanged += (_, _) => { set(slider.Value); value.Text = slider.Value.ToString("0") + " " + unit; Changed(); }; body.Children.Add(slider);
-        }
+        Loaded += (_, _) => { int ms = shell.Config.DockMotionMilliseconds; if (ms > 0 && Settings.TestDataDir == null) offset.BeginAnimation(TranslateTransform.YProperty, Motion.Track(new DoubleAnimation(12, 0, TimeSpan.FromMilliseconds(ms)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } })); };
+        save.Tick += (_, _) => Commit(); Closed += (_, _) => { save.Stop(); Commit(); }; Theme.CloseOnDeactivate(this); Render(false);
     }
-    void Changed()
+    void Render(bool keep = true)
     {
-        dirty = true; status.Text = "Saving…"; shell.ApplyDockPreferences(); save.Stop(); save.Start();
+        using var viewport = ScrollPosition.Keep(scroll, keep);
+        BarSettingsUi.Tabs(tabs, new[] { "Style", "Interaction", "Apps" }, page, next => { page = next; Render(false); }); body.Children.Clear(); var c = shell.Config;
+        if (page == "Style")
+        {
+            var size = BarSettingsUi.Section(body, "Size"); Slider(size, "App icons", 24, 44, c.IconSize, "px", v => c.IconSize = (int)v);
+            var transparency = BarSettingsUi.Section(body, "Transparency"); Slider(transparency, "At rest", .5, 99.5, c.TaskbarBaseTransparency, "%", v => c.TaskbarBaseTransparency = v, .5); Slider(transparency, "On hover", .5, 99.5, c.TaskbarHoverTransparency, "%", v => { c.TaskbarHoverTransparency = v; c.DockFadeOpacity = 1 - v / 100; }, .5); Slider(transparency, "After right-click", .5, 99.5, c.TaskbarActiveTransparency, "%", v => c.TaskbarActiveTransparency = v, .5);
+            BarSettingsUi.Advanced(body, "Shape and animation", advanced => { Slider(advanced, "Corner radius", 0, 36, c.DockRadius, "px", v => c.DockRadius = (int)v); Slider(advanced, "Animation time", 0, 350, c.DockMotionMilliseconds, "ms", v => c.DockMotionMilliseconds = (int)v, 10); });
+        }
+        else if (page == "Interaction")
+        {
+            var interaction = BarSettingsUi.Section(body, "Mouse and keyboard"); Toggle(interaction, "Click through on hover", c.DockHoverThrough, v => c.DockHoverThrough = v); Toggle(interaction, "Stay faded while typing", c.DockQuietWhileTyping, v => c.DockQuietWhileTyping = v); Slider(interaction, "Stay active after leaving", .5, 10, c.DockInteractionDelay / 1000d, "s", v => c.DockInteractionDelay = (int)Math.Round(v * 1000), .5);
+            BarSettingsUi.Note(body, "Right-click once to activate the taskbar. Right-click again for app menus.");
+        }
+        else
+        {
+            var apps = BarSettingsUi.Section(body, "Apps"); Toggle(apps, "Show open apps", c.TaskbarShowRunningApps, v => c.TaskbarShowRunningApps = v); BarSettingsUi.Note(apps, "Pinned apps and folders stay visible.");
+            var folders = BarSettingsUi.Section(body, "Bulky folders"); Slider(folders, "Apps inside folders", 24, 96, c.BulkAppSize, "px", v => { c.BulkAppSize = (int)v; shell.SaveShortcuts(); }); Slider(folders, "Folder icon size", 40, 72, c.TaskbarFolderSize, "px", v => c.TaskbarFolderSize = (int)v);
+        }
+        if (!keep) Motion.Enter(body, 0);
     }
-    void Commit()
-    {
-        save.Stop(); if (!dirty) return;
-        try { shell.Config.Save(); dirty = false; status.Text = "Saved"; } catch (Exception ex) { status.Text = "Could not save"; Log.Write("Dock controls: " + ex.Message); }
-    }
+    void Toggle(Panel host, string title, bool initial, Action<bool> set) => BarSettingsUi.Toggle(host, title, initial, v => { set(v); Changed(); });
+    void Slider(Panel host, string title, double min, double max, double initial, string unit, Action<double> set, double step = 1) => BarSettingsUi.Slider(host, title, min, max, initial, unit, v => { set(v); Changed(); }, step);
+    void Changed() { dirty = true; status.Text = "Saving…"; shell.ApplyDockPreferences(); save.Stop(); save.Start(); }
+    void Commit() { save.Stop(); if (!dirty) return; try { shell.Config.Save(); dirty = false; status.Text = "Saved"; } catch (Exception ex) { status.Text = "Could not save"; Log.Write("Taskbar controls: " + ex.Message); } }
+    internal void PreparePreview(string name) { page = name; Render(false); }
 }

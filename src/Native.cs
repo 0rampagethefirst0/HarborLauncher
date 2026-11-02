@@ -15,6 +15,7 @@ namespace Harbor;
 
 internal static class Native
 {
+    [StructLayout(LayoutKind.Sequential)] internal struct WindowPosition { internal IntPtr Window, After; internal int X, Y, Width, Height; internal uint Flags; }
     [StructLayout(LayoutKind.Sequential)] internal struct Rect { public int Left, Top, Right, Bottom; public int Width => Right - Left; public int Height => Bottom - Top; }
     [StructLayout(LayoutKind.Sequential)] internal struct Point { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] internal struct Placement { public int Length, Flags, ShowCommand; public Point MinPosition, MaxPosition; public Rect Normal; }
@@ -71,6 +72,10 @@ internal static class Native
     [DllImport("user32.dll")] internal static extern bool DestroyIcon(IntPtr icon);
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)] internal static extern IntPtr SHGetFileInfo(string path, uint attributes, out FileInfo info, uint size, uint flags);
     [DllImport("dwmapi.dll")] internal static extern int DwmGetWindowAttribute(IntPtr window, int attr, out int value, int size);
+    [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr window, int attr, ref int value, int size);
+    [DllImport("dwmapi.dll")] internal static extern int DwmFlush();
+    internal static bool CloakWindow(IntPtr window, bool cloak) { int value = cloak ? 1 : 0; return DwmSetWindowAttribute(window, 13, ref value, sizeof(int)) == 0; }
+    internal static bool DisableWindowTransitions(IntPtr window) { int value = 1; return DwmSetWindowAttribute(window, 3, ref value, sizeof(int)) == 0; }
     [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")] static extern int DwmGetWindowRect(IntPtr window, int attr, out Rect value, int size);
     internal static Rect VisibleBounds(IntPtr window, Rect fallback)
     {
@@ -298,10 +303,10 @@ internal static class Native
         SHAppBarMessage(10, ref d);
     }
     internal static void Media(byte code) { keybd_event(code, 0, 0, UIntPtr.Zero); keybd_event(code, 0, 2, UIntPtr.Zero); }
-    internal static void Launch(string path, string? args = null)
+    internal static bool Launch(string path, string? args = null)
     {
-        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true, Arguments = args ?? "" }); }
-        catch (Exception ex) { Log.Write("Launch: " + ex.Message); MessageBox.Show("Couldn't open this app.\n\n" + ex.Message, "Harbor"); }
+        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true, Arguments = args ?? "" }); return true; }
+        catch (Exception ex) { Log.Write("Launch: " + ex.Message); MessageBox.Show("Couldn't open this app.\n\n" + ex.Message, "Harbor"); return false; }
     }
 }
 

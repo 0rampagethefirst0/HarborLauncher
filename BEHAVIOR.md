@@ -7,7 +7,7 @@ The small up-chevron centered above the dock opens its modifier box. It slides u
 | Mod | What it changes |
 | --- | --- |
 | Always on Top | Keeps matching app windows above ordinary windows; restores their original state on disable or exit. |
-| Window Opacity | Applies 30–100% opacity to compatible desktop windows and restores the original value. Apps that manage their own transparency, including WPF windows, can decline the effect. |
+| Window Opacity | Applies 0.5–100% opacity to compatible desktop windows and restores the original value. Fractional values are retained. Apps that manage their own transparency, including WPF windows, can decline the effect. |
 | App Placement | Places matching windows on a selected monitor and screen region. Applied once per window; Undo layout restores the previous placement. |
 | Remember Window Positions | Saves the last normal position of selected apps and restores it when they open again, constrained to current monitor bounds. |
 | Scroll to Switch Windows | Cycles a running app's windows by scrolling its dock icon, with direction and minimized-window options. |

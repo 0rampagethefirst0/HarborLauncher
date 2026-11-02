@@ -1,3 +1,19 @@
+# Harbor Mods
+
+Source for the [public Harbor Mods community](https://harbor-mods.orangemole11.chatgpt.site). The catalog includes built-in packages, individual preview films, usage instructions, creator uploads and package downloads.
+
+The GitHub snapshot contains 57 built-ins at definition version 1.8.2. Hosted deployments may update independently.
+
+## Develop locally
+
+Requires Node.js 22.13 or later. From this folder, run `npm ci`, then `npm run dev`. Run `node tests/instructions.mjs` and `npx tsc --noEmit` for catalog and type checks. `npm run build` produces the Worker application.
+
+The app uses the Sites hosting manifest in `.openai/hosting.json`, with D1/R2 storage and dispatch-owned sign-in on the hosted service. Publishing a fork requires its own hosting resources and authentication setup. Local development uses the starter's loopback mock sign-in.
+
+Built-in metadata lives in `data/builtins.json`, preview metadata in `data/demos.json`, and rendered preview assets in `public/previews`.
+
+## Framework and hosting notes
+
 # vinext-starter
 
 A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.

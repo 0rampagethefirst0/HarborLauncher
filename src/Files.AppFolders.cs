@@ -25,13 +25,14 @@ internal sealed partial class Files
         appFolderView.Drop += (_, e) => { if (CurrentAppFolder is { } folder) { foreach (var pin in TaskbarFolders.Shortcuts(e.Data)) TaskbarFolders.Add(shell.Config, folder, pin); shell.SaveShortcuts(); } e.Handled = true; };
         shell.ShortcutsChanged += SyncAppFolderTabs; SyncAppFolderTabs();
     }
+    IEnumerable<AppFolder> AvailableAppFolders => ShellFeatures.On(shell.Config, "collection-tabs") ? shell.Config.AppFolders : Enumerable.Empty<AppFolder>();
     internal void SyncAppFolderTabs()
     {
         if (closing) return; if (folderDragging) { pendingFolderSync = true; return; }
         foreach (var tab in tabs.Where(t => TaskbarFolders.IsFolder(t.Folder)).ToArray()) {
-            var folder = TaskbarFolders.Find(shell.Config, tab.Folder); if (folder == null) tabs.Remove(tab); else tab.Label = folder.Name;
+            var folder = TaskbarFolders.Find(shell.Config, tab.Folder); if (folder == null || !ShellFeatures.On(shell.Config, "collection-tabs")) tabs.Remove(tab); else tab.Label = folder.Name;
         }
-        foreach (var folder in shell.Config.AppFolders.OrderBy(f => { int n = shell.Config.AppFolderTabOrder.IndexOf(f.Id); return n < 0 ? int.MaxValue : n; })) {
+        foreach (var folder in AvailableAppFolders.OrderBy(f => { int n = shell.Config.AppFolderTabOrder.IndexOf(f.Id); return n < 0 ? int.MaxValue : n; })) {
             string path = TaskbarFolders.Path(folder);
             if (tabs.Count < 84 && !closedFolderTabs.Contains(path) && tabs.All(t => !t.Folder.Equals(path, StringComparison.OrdinalIgnoreCase))) tabs.Add(new FileTab(path) { Label = folder.Name });
         }
@@ -60,7 +61,7 @@ internal sealed partial class Files
     void RenderAppFolderSidebar()
     {
         var section = Theme.Label("APP COLLECTIONS", 11, Theme.Muted); section.Margin = new Thickness(10, 20, 0, 9); sidebar.Children.Add(section);
-        foreach (var folder in shell.Config.AppFolders) {
+        foreach (var folder in AvailableAppFolders) {
             var b = ActionButton("folder", folder.Name, () => OpenAppFolderTab(TaskbarFolders.Path(folder))); b.HorizontalContentAlignment = HorizontalAlignment.Left; b.Padding = new Thickness(10, 9, 4, 9); b.ContextMenu = FolderUi.Menu(shell, folder, this); b.AllowDrop = true;
             b.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) ? DragDropEffects.Move : e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Link : DragDropEffects.None; e.Handled = true; };
             b.Drop += (_, e) => { foreach (var pin in TaskbarFolders.Shortcuts(e.Data)) TaskbarFolders.Add(shell.Config, folder, pin); shell.SaveShortcuts(); e.Handled = true; }; sidebar.Children.Add(b);
@@ -69,6 +70,7 @@ internal sealed partial class Files
     }
     void NewAppFolder()
     {
+        if (!shell.RequireFeature("taskbar-folders")) return;
         string? name = NameDialog.Ask(this, "New app folder", "Folder"); if (name == null) return;
         var folder = new AppFolder { Name = TaskbarFolders.CleanName(name) }; shell.Config.AppFolders.Add(folder); shell.SaveShortcuts(); OpenAppFolderTab(TaskbarFolders.Path(folder));
     }
@@ -94,7 +96,7 @@ internal sealed partial class Files
     }
     void RenderFolderAppPreview()
     {
-        previewGeneration++; preview.Children.Clear(); if (!shell.Config.FilesPreview) return;
+        previewGeneration++; preview.Children.Clear(); if (!shell.Config.FilesPreview || !ShellFeatures.On(shell.Config, "file-preview")) return;
         var folder = CurrentAppFolder; if (folder == null) return;
         if (selectedFolderApp != null && !folder.Apps.Any(p => p.Path == selectedFolderApp.Path)) selectedFolderApp = null;
         var icon = selectedFolderApp == null ? FolderUi.Icon(folder, 64) : Theme.AppIcon(selectedFolderApp.Path, selectedFolderApp.Name, 64); icon.Margin = new Thickness(0, 18, 0, 16); preview.Children.Add(icon); preview.Children.Add(Theme.Label(selectedFolderApp?.Name ?? folder.Name, 22));

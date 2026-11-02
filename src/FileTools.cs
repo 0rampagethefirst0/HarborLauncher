@@ -14,13 +14,17 @@ using Microsoft.VisualBasic.FileIO;
 
 namespace Harbor;
 
-internal sealed record FileEntry(string Path, string Name, bool Folder, long Bytes, DateTime Modified)
+internal sealed record FileEntry(string Path, string Name, bool Folder, long Bytes, DateTime Modified, DateTime CreatedAt = default, FileAttributes FileFlags = 0)
 {
     public override string ToString() => Name;
     public string Display => Name;
     public string Size => Folder ? "Folder" : FileTools.Size(Bytes);
     public string CardInfo => Folder ? "Folder \u00B7 " + Modified.ToString("MMM d") : Kind + " \u00B7 " + Size;
     public string Date => Modified.ToString("MMM d, yyyy  HH:mm");
+    public string DateGroup => Modified.Date == DateTime.Today ? "Today" : Modified.Date == DateTime.Today.AddDays(-1) ? "Yesterday" : Modified.ToString("MMMM yyyy");
+    public string Extension => Folder ? "" : System.IO.Path.GetExtension(Path);
+    public string Created => CreatedAt == default ? "" : CreatedAt.ToString("MMM d, yyyy  HH:mm");
+    public string Attributes => FileFlags == 0 ? "Normal" : FileFlags.ToString();
     public string Kind => Folder ? "Folder" : System.IO.Path.GetExtension(Path).ToLowerInvariant() switch {
         ".txt" => "Text document", ".md" => "Markdown", ".json" => "JSON document", ".pdf" => "PDF document",
         ".png" or ".jpg" or ".jpeg" or ".webp" or ".gif" => "Image", ".mp4" or ".mkv" or ".mov" => "Video",

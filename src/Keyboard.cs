@@ -21,11 +21,12 @@ internal sealed class Keyboard : IDisposable
     readonly Action open;
     readonly Action<uint> shortcut;
     readonly Action? typing;
+    readonly Action<ScreenshotKind>? screenshot;
     readonly HashSet<uint> consumed = new();
     bool left, right, forwarded, ctrlEscape, chord;
-    internal Keyboard(Dispatcher dispatcher, Action open, Action<uint> shortcut, Action? typing = null)
+    internal Keyboard(Dispatcher dispatcher, Action open, Action<uint> shortcut, Action? typing = null, Action<ScreenshotKind>? screenshot = null)
     {
-        this.dispatcher = dispatcher; this.open = open; this.shortcut = shortcut; this.typing = typing;
+        this.dispatcher = dispatcher; this.open = open; this.shortcut = shortcut; this.typing = typing; this.screenshot = screenshot;
         callback = Handle;
         hook = SetWindowsHookEx(13, callback, GetModuleHandle(null), 0);
         Log.Write(hook == IntPtr.Zero ? "Start-menu key hook unavailable; Ctrl+Alt+Space still works." : "Windows key and Ctrl+Esc launcher enabled.");
@@ -40,6 +41,10 @@ internal sealed class Keyboard : IDisposable
         bool up = message.ToInt32() is 0x101 or 0x105;
         if (down && !left && !right && DockTyping.TextKey(k.Key) && (GetAsyncKeyState(0x12) & 0x8000) == 0) { try { typing?.Invoke(); } catch { } }
         if (consumed.Contains(k.Key)) { if (up) consumed.Remove(k.Key); return new IntPtr(1); }
+        if (down && screenshot != null && Screenshots.Shortcut(k.Key, left || right, (GetAsyncKeyState(0x10) & 0x8000) != 0, (GetAsyncKeyState(0x11) & 0x8000) != 0, (GetAsyncKeyState(0x12) & 0x8000) != 0, out var capture))
+        {
+            chord |= left || right; consumed.Add(k.Key); dispatcher.BeginInvoke(new Action(() => screenshot(capture))); return new IntPtr(1);
+        }
         if (k.Key == 0x1B)
         {
             // Consume both Escape events so Explorer never receives the Start shortcut.
@@ -78,6 +83,9 @@ internal sealed class Keyboard : IDisposable
         }
         if (down && (left || right) && !forwarded)
         {
+            // Keep Win+Shift chords local until the actual command key arrives.
+            // Shift itself still passes through to the foreground app normally.
+            if (k.Key is 0x10 or 0x11 or 0x12 or 0xA0 or 0xA1 or 0xA2 or 0xA3 or 0xA4 or 0xA5) return CallNextHookEx(hook, code, message, data);
             if (k.Key is 0x45 or 0x44 or 0x4E or 0x41 && (GetAsyncKeyState(0x11) & 0x8000) == 0 && (GetAsyncKeyState(0x10) & 0x8000) == 0 && (GetAsyncKeyState(0x12) & 0x8000) == 0)
             {
                 chord = true; consumed.Add(k.Key); dispatcher.BeginInvoke(new Action(() => shortcut(k.Key))); return new IntPtr(1);

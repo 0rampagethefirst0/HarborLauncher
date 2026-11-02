@@ -90,7 +90,7 @@ internal sealed class WidgetLayout
             {
                 var values = new Dictionary<string, string>(node.Values) { ["width"] = Math.Clamp(node.Width > 0 ? node.Width : available, 180, 650).ToString(CultureInfo.InvariantCulture) };
                 var child = new ModDefinition { Id = mod.Id + ".node." + node.Key, Name = node.Text.Length > 0 ? node.Text : node.Component, Component = node.Component, Values = values };
-                var widget = new Widget(shell, child, preview, demo); updates.Add(widget.Tick); element = widget.View; break;
+                var widget = new Widget(shell, child, preview, demo, true); updates.Add(widget.Tick); element = widget.View; break;
             }
             default: element = new Border(); break;
         }

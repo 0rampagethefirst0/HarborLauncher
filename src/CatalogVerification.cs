@@ -14,7 +14,7 @@ internal static class CatalogVerification
     internal static void Run(Shell shell, Action<string, bool, object?> check)
     {
         var mods = shell.Mods; var bundled = mods.Catalog.Where(m => m.Id.StartsWith("harbor.")).ToList();
-        check("All preset packages have a main category, valid subcategory and tags", bundled.Count == 36 && bundled.All(m => ModTaxonomy.Main.Contains(m.MainCategory) && ModTaxonomy.Children[m.MainCategory].Contains(m.Subcategory) && m.Tags.Count >= 3), null);
+        check("All preset packages have a main category, valid subcategory and tags", bundled.Count == 37 + ShellFeatures.Definitions.Length && bundled.All(m => ModTaxonomy.Main.Contains(m.MainCategory) && ModTaxonomy.Children[m.MainCategory].Contains(m.Subcategory) && m.Tags.Count >= 3), null);
         var old = Mods.Read("{\"id\":\"test.legacy\",\"name\":\"Legacy clock\",\"component\":\"clock\",\"category\":\"Desktop\"}");
         check("Old manifests keep working with automatic category mapping", ModTaxonomy.MainOf(old) == "Tools" && ModTaxonomy.SubOf(old) == "Time", null);
         var invalid = Mods.Read(JsonSerializer.Serialize(old)); invalid.MainCategory = "Not a category";

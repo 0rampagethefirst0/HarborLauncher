@@ -12,15 +12,20 @@ namespace Harbor;
 
 // Desktop effects are staged examples; widgets below use the actual Widget renderer.
 // This scene never launches apps, alters windows, changes volume, or saves fields.
-internal sealed class ModDemoScene
+internal sealed partial class ModDemoScene
 {
-    internal const int Width = 720, Height = 400, Frames = 192, Columns = 12, FilmWidth = 540, FilmHeight = 300;
-    internal const double FrameMilliseconds = 1000d / 60;
+    internal const int Width = 720, Height = 400, Frames = 288, Columns = 12, FilmWidth = 540, FilmHeight = 300;
+    internal const double FrameMilliseconds = 1000d / 90;
     readonly string originalId;
+    readonly Shell shell;
+    readonly ModDefinition original;
     readonly ModDefinition mod;
     readonly WidgetDemoData data = new();
     readonly Widget? widget;
     Viewbox? widgetHost;
+    Viewbox? homeHost;
+    readonly HarborHome? homeDemo;
+    readonly FrameworkElement? homeView;
     readonly Canvas canvas = new() { Width = Width, Height = Height, ClipToBounds = true, Background = Theme.Brush("#101722") };
     readonly Brush accent;
     internal FrameworkElement View => canvas;
@@ -28,26 +33,28 @@ internal sealed class ModDemoScene
     internal string Renderer => mod.Kind == "theme" ? "shell-palette" : mod.Kind == "widget" ? "native-widget" : mod.Component;
     internal ModDemoScene(Shell shell, ModDefinition source)
     {
-        originalId = source.Id;
+        originalId = source.Id; original = source; this.shell = shell;
         mod = JsonSerializer.Deserialize<ModDefinition>(JsonSerializer.Serialize(source, Mods.Json), Mods.Json)!;
         mod.Id = "preview." + Guid.NewGuid().ToString("N");
         accent = ModBanner.Accent(ModTaxonomy.MainOf(mod));
+        if (mod.Component == "desktop-icons") { homeDemo = new HarborHome(shell, shell.CurrentMonitor(), demo: true); homeView = (FrameworkElement)homeDemo.Content; homeDemo.Content = null; homeDemo.Close(); }
         if (mod.Kind == "widget")
         {
             Option("width", mod.Component == "dashboard" ? "360" : "310");
             Option("paths", "C:\\Projects\nC:\\Downloads\nC:\\Documents");
             Option("apps", "Calculator | calc.exe\nNotes | notepad.exe\nBrowser | https://example.com");
             Option("items", "Finish the icon set\nReview the new desktop\nTake a break");
-            widget = new Widget(shell, mod, true, data);
+            widget = new Widget(shell, mod, true, data, true);
         }
         Draw(.72);
     }
     void Option(string key, string value) { var option = mod.Options.FirstOrDefault(o => o.Key == key); if (option != null) option.Default = value; else mod.Values[key] = value; }
     internal void Draw(double phase)
     {
-        data.Phase = Math.Clamp(phase, 0, 1); if (widgetHost != null) { widgetHost.Child = null; widgetHost = null; } canvas.Children.Clear();
+        data.Phase = Math.Clamp(phase, 0, 1); if (widgetHost != null) { widgetHost.Child = null; widgetHost = null; } if (homeHost != null) { homeHost.Child = null; homeHost = null; } canvas.Children.Clear();
         if (mod.Kind == "theme") Palette();
         else if (mod.Kind == "widget") WidgetScene();
+        else if (mod.Kind == "feature") FeatureScene();
         else DesktopEffect();
         Instruction = ModCopy.Caption(originalId) ?? Instruction;
         Text("SAMPLE DATA · PREVIEW", 20, 378, 10, "#8CA2BD");
@@ -56,65 +63,27 @@ internal sealed class ModDemoScene
     void WidgetScene()
     {
         double p = data.Phase;
+        double expand = p < .18 ? 0 : p < .40 ? Smooth((p - .18) / .22) : p < .88 ? 1 : 1 - Smooth((p - .88) / .12);
         string key = mod.Component == "dashboard" ? OriginalDashboard() : mod.Component;
-        Instruction = key switch {
-            "clock" => "Your clock and date update on the desktop.",
-            "world-clock" => "Local time 08:25 · Tokyo time 21:25, at the same moment.",
-            "system" => "CPU history changes while RAM usage stays visible.",
-            "network" => "Download and upload rates update separately.",
-            "storage" => "Free and total capacity for each chosen drive.",
-            "uptime" => "Time since the last Windows boot, down to the second.",
-            "notes" => "Type directly on your desktop. Notes save locally.",
-            "tasks" => "Check off individual tasks and keep your progress.",
-            "focus" => "Start a countdown, pause it, or reset the session.",
-            "stopwatch" => "Count up from zero, pause, and reset.",
-            "calculator" => "Type an expression. The answer is calculated immediately.",
-            "converter" => "Change units: 100 km/h becomes 62.137119 mph.",
-            "folders" => "One click opens the chosen folder in Harbor Files.",
-            "clipboard" => "Each copied text becomes another reusable clipboard item.",
-            "layouts" => "Columns, Grid, Stack and Undo rearrange your windows.",
-            "launchpad" => "Your own shortcuts open apps and websites.",
-            "sound-desk" => "Change volume, mute, and control media in one panel.",
-            "resource-desk" => "CPU, RAM, free space and uptime in a single dashboard.",
-            "day-planner" => "A checklist, focus timer and editable notes together.",
-            "window-desk" => "Open apps, files, alerts and window layouts from one desk.",
-            _ => "Your own layout, rendered by Harbor’s native widget engine."
-        };
         Bar();
-        if (key is "layouts" or "window-desk")
+        AppWindow(new Rect(28, 54, 650, 266), key == "folders" && p > .52 ? "Harbor Files · Projects" : "Your workspace", 1, true);
+        if (key == "folders" && p > .52) { FileRow(54, 115, "Designs", true); FileRow(54, 155, "Harbor", true); FileRow(54, 195, "Sketch.txt", false); }
+        else if (key is "layouts" or "window-desk") { double progress = Smooth(Math.Clamp((p - .36) / .3, 0, 1)); AppWindow(new Rect(42, 95, 228, 102 + (1 - progress) * 74), "Browser", 2, true); AppWindow(new Rect(84 - 42 * progress, 138 + 66 * progress, 228, 102), "Notes", 0, false); }
+        else { Text("Keep working here", 54, 115, 21, "#B3C5DD"); Text("Tools expand only when you need them.", 54, 150, 13, "#879FBF"); }
+        double controlWidth = key is "system" or "resource-desk" ? 192 : key == "storage" ? 224 : 112;
+        var controlPosition = PluginSnapping.Place(new Rect(25, 58, 680, 262), new Size(controlWidth, 36), PluginSnapping.Default(original), .9, .5);
+        var control = PluginHandle.Face(shell, original, controlWidth, () => { }, out _, out _, true); control.Width = controlWidth; control.Height = 36; At(control, controlPosition.Left, controlPosition.Top); canvas.Children.Add(control);
+        if (expand > .001)
         {
-            int arrangement = p < .35 ? 0 : p < .7 ? 1 : 2;
-            for (int i = 0; i < 3; i++)
-            {
-                Rect r = arrangement == 0 ? new Rect(28 + i * 92, 80, 88, 225) : arrangement == 1 ? new Rect(28 + i % 2 * 138, 80 + i / 2 * 114, 133, 109) : new Rect(28 + i * 26, 80 + i * 35, 220, 145);
-                AppWindow(r, i == 0 ? "Notes" : i == 1 ? "Browser" : "Files", i, i == 2);
-            }
-            PutWidget(322, 64, 370, 260); Pointer(510, arrangement == 0 ? 125 : arrangement == 1 ? 165 : 205, true); return;
+            double x = (controlPosition.Left < 360 ? controlPosition.Right + 12 : controlPosition.Left - 318) + (1 - expand) * 12; x = Math.Clamp(x, 24, 390);
+            widget!.Tick(); widget.View.Measure(new Size(widget.View.Width, double.PositiveInfinity)); double bodyHeight = Math.Min(207, widget.View.DesiredSize.Height * 282 / widget.View.Width); double panelHeight = bodyHeight + 68, top = Math.Max(52, 171 - panelHeight / 2);
+            var panel = new Border { Width = 306, Height = panelHeight, Background = Theme.Panel, BorderBrush = Theme.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(13), Opacity = expand }; At(panel, x, top); canvas.Children.Add(panel);
+            Text(original.Name, x + 16, top + 12, 16); Icon("close", x + 276, top + 15, 13);
+            PutWidget(x + 12, top + 40, 282, bodyHeight); widgetHost!.Opacity = expand;
+            Text("Click away to collapse", x + 16, top + panelHeight - 18, 10, "#9AA8BC");
         }
-        if (key is "folders" or "launchpad")
-        {
-            PutWidget(32, 76, 300, 239);
-            if (p > .35)
-            {
-                AppWindow(new Rect(363, 69, 326, 245), key == "folders" ? "Harbor Files · Projects" : "Calculator", key == "folders" ? 3 : 4, true);
-                if (key == "folders") { FileRow(387, 128, "Designs", true); FileRow(387, 168, "Harbor", true); FileRow(387, 208, "Sketch.txt", false); }
-                else { Text("12 + 8", 396, 125, 23); Text("20", 396, 172, 50, "#83DFD0"); }
-            }
-            Pointer(126, 145, p is > .22 and < .5); return;
-        }
-        if (key == "world-clock") { Text("NEW YORK", 70, 125, 12, "#9BB2CE"); Text(p < .2 ? "08:24" : "08:25", 66, 149, 53); Text("Thu, Oct 29", 70, 215, 16, "#AFC1D9"); PutWidget(331, 81, 350, 215); return; }
-        if (key == "day-planner")
-        {
-            PutWidget(25, 58, 300, 275);
-            double top = 30 + Smooth(Math.Clamp((p - .3) / .6, 0, 1)) * 250;
-            var zoom = new Rectangle { Width = 335, Height = 265, Fill = new VisualBrush(widget!.View) { ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(0, top, 360, 285), Stretch = Stretch.Uniform } }; At(zoom, 355, 66); canvas.Children.Add(zoom);
-            Text("Full dashboard", 39, 321, 11, "#94AAC7"); Text("Detail view", 367, 321, 11, "#94AAC7"); return;
-        }
-        PutWidget(90, 58, 540, 275);
-        if (key is "notes" or "calculator") Pointer(270, 133, p < .25);
-        if (key == "tasks") Pointer(238, p < .5 ? 136 : 169, p is > .25 and < .75);
-        if (key is "focus" or "stopwatch") Pointer(p < .8 ? 250 : 415, 238, p < .2 || p > .8);
-        if (key == "sound-desk") { KeyBadge("Volume", 36, 81); Meter(40, 114, 96, data.Volume); }
+        Pointer(p < .3 ? 660 : 407, p < .3 ? 174 : key is "calculator" or "notes" ? 140 : 204, p is > .16 and < .25);
+        Instruction = ModCopy.Caption(originalId) ?? "Expand the control when you need the full tool.";
     }
     string OriginalDashboard()
     {
@@ -124,9 +93,11 @@ internal sealed class ModDemoScene
     void PutWidget(double x, double y, double width, double height)
     {
         widget!.Tick();
-        var box = new Viewbox { Width = width, Height = height, Stretch = Stretch.Uniform, StretchDirection = StretchDirection.Both, Child = widget.View };
+        widget.View.Measure(new Size(widget.View.Width, double.PositiveInfinity)); double naturalHeight = widget.View.DesiredSize.Height * width / widget.View.Width;
+        var box = new Viewbox { Width = width, Height = naturalHeight, Stretch = Stretch.Uniform, StretchDirection = StretchDirection.Both, VerticalAlignment = VerticalAlignment.Top, Child = widget.View };
+        if (naturalHeight > height) box.RenderTransform = new TranslateTransform(0, -(naturalHeight - height) * Smooth(Math.Clamp((data.Phase - .40) / .40, 0, 1)));
         widgetHost = box;
-        At(box, x, y); canvas.Children.Add(box);
+        var viewport = new Border { Width = width, Height = height, ClipToBounds = true, Child = box }; At(viewport, x, y); canvas.Children.Add(viewport);
     }
     void DesktopEffect()
     {
@@ -202,6 +173,21 @@ internal sealed class ModDemoScene
     }
     void Palette()
     {
+        if (originalId == "harbor.tokyo-dragon")
+        {
+            var background = new System.Windows.Controls.Image { Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Harbor;component/Assets/tokyo-dragon-outline.png")), Width = Width, Height = 340, Stretch = Stretch.UniformToFill }; canvas.Children.Add(background);
+            double opening = Smooth(Math.Clamp((data.Phase - .18) / .72, 0, 1));
+            var actor = new DragonHomeFire { Width = 720, Height = 340, Origin = new Point(350, 180), LogoSize = 140, Progress = opening, HomeBounds = new Rect(230, 58, 450, 252), LogoTint = (Color)ColorConverter.ConvertFromString("#F33D4F"), FireTint = (Color)ColorConverter.ConvertFromString("#FF6A20"), PanelTint = (Color)ColorConverter.ConvertFromString("#171216") }; canvas.Children.Add(actor);
+            var logo = new DrawingVisual(); using (var dc = logo.RenderOpen()) DragonArt.Draw(dc, 180, 180, -16 + data.Phase * 90, tint: (Color)ColorConverter.ConvertFromString("#F33D4F"));
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(180, 180, 96, 96, PixelFormats.Pbgra32); bitmap.Render(logo); bitmap.Freeze();
+            var mark = new System.Windows.Controls.Image { Source = bitmap, Width = 130, Height = 130, Opacity = DragonHomeFire.IdleOpacity(opening) }; At(mark, 285, 115); canvas.Children.Add(mark);
+            var home = new Canvas { Width = 720, Height = 340, Clip = actor.Surface, Opacity = DragonHomeFire.ContentReveal(opening) }; var previousTarget = target; target = home;
+            Text("Harbor Home", 255, 78, 19, "#F7ECEE");
+            string[] names = { "Files", "Browser", "Music", "Games", "Discord", "Notes", "Photos", "Tools" }; for (int i = 0; i < names.Length; i++) { double x = 253 + i % 4 * 103, y = 123 + i / 4 * 71; Box(x, y, 91, 59, "#2A1B22", 8); Text(names[i], x + 10, y + 21, 12, "#F7ECEE"); }
+            target = previousTarget; canvas.Children.Add(home);
+            Instruction = "The dragon leans upward at 17 degrees. Its fire changes shape into Home."; return;
+        }
+
         string Color(string key, string fallback) => mod.Options.FirstOrDefault(o => o.Key == key)?.Default ?? mod.Values.GetValueOrDefault(key, fallback);
         double split = 1 - Smooth(Math.Clamp((data.Phase - .1) / .7, 0, 1));
         ShellPalette("#141922", "#1D2430", "#8AB4FF", "#EDF1FA");
@@ -215,11 +201,11 @@ internal sealed class ModDemoScene
     Canvas Target => target ?? canvas;
     void ShellPalette(string background, string panel, string color, string text)
     {
-        Box(0, 0, 720, 340, background, 0); Box(15, 18, 690, 32, panel, 5);
+        Box(0, 0, 720, 340, background, 0); var mark = new HarborEmblem(220) { Turn = -16 + data.Phase * 100, Tint = (Color)ColorConverter.ConvertFromString(color) }; At(mark, 425, 65); Target.Children.Add(mark); Box(15, 18, 690, 32, panel, 5);
         Text("Apps   Files   Mods", 30, 25, 13, text); Text("Thu, Oct 29     08:25", 536, 25, 12, text);
         Box(39, 73, 307, 231, panel, 11); Text("Apps", 58, 88, 22, text);
         for (int i = 0; i < 6; i++) { double x = 63 + i % 3 * 85, y = 136 + i / 3 * 77; var icon = UiIcons.Icon(new[] { "apps", "folder", "mods", "window", "profiles", "controls" }[i], 28); icon.SetValue(Control.ForegroundProperty, Theme.Brush(color)); At(icon, x + 10, y); Target.Children.Add(icon); Text(new[] { "Apps", "Files", "Mods", "Windows", "Profiles", "Settings" }[i], x, y + 39, 12, text); }
-        Box(398, 83, 275, 170, panel, 11); Text("08:25", 421, 103, 47, text); Text("Thursday, October 29", 425, 167, 15, text); Box(425, 204, 205, 7, color, 3);
+        Text("Your desktop, in your colors", 417, 250, 12, text);
         Box(388, 275, 294, 51, panel, 11); for (int i = 0; i < 5; i++) { Box(403 + i * 54, 286, 30, 29, color, 7); var icon = UiIcons.Icon(i % 2 == 0 ? "apps" : "folder", 18); At(icon, 409 + i * 54, 291); Target.Children.Add(icon); }
     }
     void Bar() { Box(15, 19, 690, 32, "#243248", 6); Text("Apps   Files   Mods", 28, 26, 13, "#D4E3F7"); Text("08:25", 648, 26, 13); }
@@ -249,7 +235,7 @@ internal sealed class ModDemoScene
     void MouseWheel(double x, double y, bool middle = false) { var b = Box(x - 12, y, 31, 43, "#162232", 12); b.BorderBrush = accent; b.BorderThickness = new Thickness(2); Box(x, y + 5, 5, 14, middle ? "#FFC593" : "#83DFD0", 2); if (!middle) { Text("↑", x + 27, y - 5, 23, "#83DFD0"); Text("↓", x + 27, y + 18, 23, "#83DFD0"); } }
     void Pointer(double x, double y, bool click) { var path = new System.Windows.Shapes.Path { Data = Geometry.Parse("M0,0 L0,24 L6,18 L11,29 L16,27 L10,16 L20,16 Z"), Fill = Brushes.White, Stroke = Theme.Brush("#132438"), StrokeThickness = 1.4 }; At(path, x, y); Target.Children.Add(path); if (click) { var ring = new Ellipse { Width = 32, Height = 32, Stroke = accent, StrokeThickness = 3 }; At(ring, x - 9, y - 9); Target.Children.Add(ring); } }
     Border Box(double x, double y, double width, double height, string color, int radius) { var b = new Border { Width = width, Height = height, Background = Theme.Brush(color), CornerRadius = new CornerRadius(radius) }; At(b, x, y); Target.Children.Add(b); return b; }
-    void Text(string text, double x, double y, double size, string color = "#EAF2FF") { var label = new TextBlock { Text = text, FontSize = size, Foreground = Theme.Brush(color), FontFamily = new FontFamily("Segoe UI"), TextWrapping = TextWrapping.NoWrap }; At(label, x, y); Target.Children.Add(label); }
+    TextBlock Text(string text, double x, double y, double size, string color = "#EAF2FF") { var label = new TextBlock { Text = text, FontSize = size, Foreground = Theme.Brush(color), FontFamily = new FontFamily("Segoe UI"), TextWrapping = TextWrapping.NoWrap }; At(label, x, y); Target.Children.Add(label); return label; }
     void Icon(string kind, double x, double y, double size) { var icon = UiIcons.Icon(kind, size); At(icon, x, y); Target.Children.Add(icon); }
     static void At(UIElement element, double x, double y) { Canvas.SetLeft(element, x); Canvas.SetTop(element, y); }
     static double Smooth(double p) => p * p * (3 - 2 * p);

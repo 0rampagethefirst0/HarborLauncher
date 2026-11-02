@@ -11,9 +11,10 @@ namespace Harbor;
 internal sealed partial class Files
 {
     internal const string HomePath = "harbor-home://";
+    internal const string FrequentPath = "harbor-frequent://";
     readonly ScrollViewer homeView = new() { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Visibility = Visibility.Collapsed };
     readonly DispatcherTimer sizeSave = new() { Interval = TimeSpan.FromMilliseconds(350) };
-    internal bool IsHome => CurrentFolder == HomePath;
+    internal bool IsHome => CurrentFolder == HomePath || CurrentFolder == FrequentPath;
     void InitializeHome()
     {
         ((Grid)list.Parent).Children.Add(homeView); Motion.SmoothScroll(homeView);
@@ -22,10 +23,10 @@ internal sealed partial class Files
     }
     bool NavigateHome(string target, bool history)
     {
-        if (target != HomePath && !target.Equals("Home", StringComparison.OrdinalIgnoreCase)) { homeView.Visibility = Visibility.Collapsed; return false; }
-        generation++; watcher?.Dispose(); watcher = null; watcherDelay.Stop(); active.Visit(HomePath, history); active.Label = "Home";
+        if (target != HomePath && target != FrequentPath && !target.Equals("Home", StringComparison.OrdinalIgnoreCase)) { homeView.Visibility = Visibility.Collapsed; return false; }
+        generation++; watcher?.Dispose(); watcher = null; watcherDelay.Stop(); active.Visit(target == FrequentPath ? FrequentPath : HomePath, history); active.Label = target == FrequentPath ? "Frequently used" : "Home";
         list.Visibility = empty.Visibility = appFolderView.Visibility = fileActions.Visibility = sortSelector.Visibility = sortDirection.Visibility = Visibility.Collapsed;
-        homeView.Visibility = Visibility.Visible; heading.Text = "Home"; summary.Text = "Your folders, app collections, and drives";
+        homeView.Visibility = Visibility.Visible; heading.Text = active.Label; summary.Text = "Your folders, app collections, and drives";
         backButton.IsEnabled = active.Back.Count > 0; forwardButton.IsEnabled = active.Forward.Count > 0;
         RenderHome(); RenderTabs(); RenderLocation(); RenderSidebar(); SetAddressMode(false); Motion.Enter(homeView); return true;
     }
@@ -33,11 +34,19 @@ internal sealed partial class Files
     {
         if (!IsHome) return;
         var body = new StackPanel { Margin = new Thickness(0, 0, 4, 24) }; homeView.Content = body;
+        if (CurrentFolder == FrequentPath)
+        {
+            Section("Frequently used", "Your folders and files, ranked by use in Harbor. This list learns as you open them."); var frequent = new WrapPanel(); body.Children.Add(frequent);
+            var paths = shell.Config.AppUsage.Where(p => Directory.Exists(p.Key) || File.Exists(p.Key) && !new[] { ".exe", ".lnk", ".url", ".cmd", ".bat", ".appref-ms" }.Contains(Path.GetExtension(p.Key).ToLowerInvariant())).OrderByDescending(p => p.Value.Count).ThenByDescending(p => p.Value.LastUsedUtc).Select(p => p.Key).Concat(shell.Config.RecentFolders).Distinct(StringComparer.OrdinalIgnoreCase).Take(24).ToArray();
+            foreach (string path in paths) Card(frequent, FriendlyName(path), path, Directory.Exists(path) ? FileIconConverter.FolderArt(FriendlyName(path), 42) : Theme.AppIcon(path, Path.GetFileName(path), 42), Directory.Exists(path) ? "Open folder" : "Open file");
+            if (paths.Length == 0) body.Children.Add(Theme.Label("Open a folder or file through Harbor to start this list.", 15, Theme.Muted));
+            previousPage.Visibility = nextPage.Visibility = Visibility.Collapsed; status.Text = "Frequently used ? saved on this PC"; _ = PreviewSelection(); return;
+        }
         Section("Folders you use", "Open a place, or pin a folder from View options."); var places = new WrapPanel(); body.Children.Add(places);
         string user = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         foreach (var place in new[] { ("Desktop", Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)), ("Downloads", Path.Combine(user, "Downloads")), ("Documents", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)), ("Pictures", Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)), ("Music", Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)), ("Videos", Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)) }) Card(places, place.Item1, place.Item2, FileIconConverter.FolderArt(place.Item1, 42), "Open folder");
         if (shell.Config.FileFavorites.Count > 0) { Section("Pinned folders", "Your saved shortcuts"); var pinned = new WrapPanel(); body.Children.Add(pinned); foreach (string path in shell.Config.FileFavorites) Card(pinned, FriendlyName(path), path, FileIconConverter.FolderArt(FriendlyName(path), 42), path); }
-        if (shell.Config.AppFolders.Count > 0) { Section("App collections", "Shared with the taskbar. Rename and rearrange them in either place."); var folders = new WrapPanel(); body.Children.Add(folders); foreach (var folder in shell.Config.AppFolders) Card(folders, folder.Name, TaskbarFolders.Path(folder), FolderUi.Icon(folder, 48), folder.Apps.Count + " apps"); }
+        if (shell.Config.AppFolders.Count > 0) { Section("App collections", "Shared with the taskbar. Rename and rearrange them in either place."); var folders = new WrapPanel(); body.Children.Add(folders); foreach (var folder in AvailableAppFolders) Card(folders, folder.Name, TaskbarFolders.Path(folder), FolderUi.Icon(folder, 48), folder.Apps.Count + " apps"); }
         if (shell.Config.RecentFolders.Count > 0) { Section("Recently opened", "Folders you visited in Files"); foreach (string path in shell.Config.RecentFolders.Take(5)) { var row = ActionButton("folder", FriendlyName(path) + "   ·   " + path, () => Load(path)); row.HorizontalContentAlignment = HorizontalAlignment.Left; body.Children.Add(row); } }
         Section("Drives", "Storage on this PC");
         foreach (var drive in DriveInfo.GetDrives()) try {
@@ -53,7 +62,7 @@ internal sealed partial class Files
             var content = new StackPanel { Width = 156, Margin = new Thickness(12, 14, 12, 14) }; icon.HorizontalAlignment = HorizontalAlignment.Left; content.Children.Add(icon);
             var title = Theme.Label(name, 15); title.FontWeight = FontWeights.SemiBold; title.TextTrimming = TextTrimming.CharacterEllipsis; title.Margin = new Thickness(0, 12, 0, 5); content.Children.Add(title);
             var subtitle = Theme.Label(note, 12, Theme.Muted); subtitle.TextTrimming = TextTrimming.CharacterEllipsis; content.Children.Add(subtitle);
-            var b = Theme.Button(content, "Open " + name, () => { if (TaskbarFolders.IsFolder(path)) OpenAppFolderTab(path); else Load(path); }); b.Background = Theme.Panel; b.Margin = new Thickness(0, 0, 8, 8); parent.Children.Add(b);
+            var b = Theme.Button(content, "Open " + name, () => { if (TaskbarFolders.IsFolder(path)) OpenAppFolderTab(path); else if (File.Exists(path)) shell.Launch(path); else Load(path); }); b.Background = Theme.Panel; b.Margin = new Thickness(0, 0, 8, 8); parent.Children.Add(b);
         }
     }
     internal void SetFileZoom(int size)
@@ -69,7 +78,7 @@ internal sealed partial class Files
     }
     internal static string FriendlyName(string path)
     {
-        if (path == HomePath) return "Home";
+        if (path == HomePath) return "Home"; if (path == FrequentPath) return "Frequently used"; if (path == RecycleBin.Location) return "Recycle Bin";
         try { if (path.TrimEnd('\\').Equals(Path.GetPathRoot(path)?.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) { var drive = new DriveInfo(path); return (drive.IsReady && drive.VolumeLabel.Length > 0 ? drive.VolumeLabel : "Local disk") + " (" + drive.Name.TrimEnd('\\') + ")"; } } catch { }
         string name = Path.GetFileName(path.TrimEnd('\\')); return name.Length > 0 ? name : path;
     }

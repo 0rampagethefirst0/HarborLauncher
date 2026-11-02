@@ -31,8 +31,10 @@ internal static class Verification
             using (var blocker = new FileStream(atomicPath, FileMode.Open, FileAccess.Read, FileShare.Read)) Check("Temporary file locks defer a heartbeat write without throwing", !AtomicFile.TryWriteText(atomicPath, "blocked") && AtomicFile.ReadText(atomicPath) == "new");
             Check("Atomic writes resume after a file lock is released", AtomicFile.TryWriteText(atomicPath, "resumed") && AtomicFile.ReadText(atomicPath) == "resumed");
             var config = Settings.Load(); var mods = new Mods(config);
+            Check("Fresh profiles leave all optional features disabled", config.FeatureVersion == 1 && !mods.Enabled.Any());
+            foreach (var feature in mods.Catalog.Where(m => m.Kind == "feature").ToArray()) mods.Enable(feature, true, true);
             int bundledCount = mods.Catalog.Count;
-            Check("Bundled mods have unique valid IDs", bundledCount == 36 && mods.Catalog.Select(m => m.Id).Distinct().Count() == bundledCount);
+            Check("Bundled mods have unique valid IDs", bundledCount == 37 + ShellFeatures.Definitions.Length && mods.Catalog.Select(m => m.Id).Distinct().Count() == bundledCount);
             foreach (var mod in mods.Catalog) { Mods.Validate(mod); mods.Install(mod, false); }
             Check("Every bundled package installs", mods.Catalog.All(mods.Installed));
             var note = mods.Catalog.First(m => m.Component == "notes"); mods.Set(note, "content", "Saved note", false);
@@ -72,11 +74,19 @@ internal static class Verification
             IntPtr monitor = model.CurrentMonitor(); var firstWindow = new WindowEntry(new IntPtr(101), "First", @"C:\one.exe", "One", monitor); var secondWindow = new WindowEntry(new IntPtr(102), "Second", @"C:\two.exe", "Two", monitor);
             model.Tracker.LoadPreview(new[] { firstWindow }); var dock = new Dock(model, monitor); dock.Refresh();
             StackPanel DockItems() => (StackPanel)((ScrollViewer)((Grid)dock.Content).Children.OfType<Border>().First().Child).Content;
+            Check("Taskbar defaults to pinned shortcuts without adding open apps", !config.TaskbarShowRunningApps && dock.RunningAppCount == 0 && DockItems().Children.OfType<Button>().Any(b => AutomationProperties.GetAutomationId(b) == "pin:notepad.exe"));
+            config.TaskbarShowRunningApps = true; dock.Refresh();
             var firstButton = DockItems().Children.OfType<Button>().First(b => AutomationProperties.GetAutomationId(b) == "run:" + firstWindow.Key);
             model.Tracker.LoadPreview(new[] { secondWindow, firstWindow with { Title = "Changed title" } }); dock.Refresh();
             var kept = DockItems().Children.OfType<Button>().First(b => AutomationProperties.GetAutomationId(b) == "run:" + firstWindow.Key);
             Check("Dock preserves existing buttons through window-list and title changes", ReferenceEquals(firstButton, kept));
-            model.Tracker.LoadPreview(new[] { firstWindow }); dock.Refresh(); Check("Closing another app keeps the existing dock button", DockItems().Children.OfType<Button>().Contains(firstButton)); dock.Close();
+            model.Tracker.LoadPreview(new[] { firstWindow }); dock.Refresh(); Check("Closing another app keeps the existing dock button", DockItems().Children.OfType<Button>().Contains(firstButton));
+            var pinnedButton = DockItems().Children.OfType<Button>().First(b => AutomationProperties.GetAutomationId(b) == "pin:notepad.exe");
+            config.TaskbarShowRunningApps = false; dock.Refresh();
+            Check("Turning off open apps removes their buttons and preserves pinned buttons", dock.RunningAppCount == 0 && DockItems().Children.OfType<Button>().Contains(pinnedButton) && !DockItems().Children.OfType<Button>().Contains(firstButton));
+            config.Save(); Check("Taskbar open-app preference survives reload", !Settings.Load().TaskbarShowRunningApps);
+            config.TaskbarShowRunningApps = true; dock.Refresh(); Check("Open apps can be restored without losing pinned shortcuts", dock.RunningAppCount == 1 && DockItems().Children.OfType<Button>().Contains(pinnedButton));
+            config.TaskbarShowRunningApps = false; dock.Close();
             using (var one = new HwndSource(new HwndSourceParameters("Harbor identity test 1") { ParentWindow = new IntPtr(-3) }))
             using (var two = new HwndSource(new HwndSourceParameters("Harbor identity test 2") { ParentWindow = new IntPtr(-3) }))
             {
@@ -102,6 +112,13 @@ internal static class Verification
             CatalogVerification.Run(model, Check);
             PreviewVerification.Run(model, Check);
             ShellUiVerification.Run(directory, Check);
+            ShellStartupVerification.Run(model, Check);
+            PluginVerification.Run(model, Check);
+            FeatureVerification.Run(model, Check);
+            PluginVisibilityVerification.Run(model, Check);
+            QuickSettingsMotionVerification.Run(Check);
+            HomeVerification.Run(directory, model, Check);
+            HomeFilesVerification.Run(directory, model, Check);
             app.Shutdown();
         }
         catch (Exception ex) { results.Add(new { Name = "Verification finished", Passed = false, Detail = ex.ToString() }); }

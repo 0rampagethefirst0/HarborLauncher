@@ -17,8 +17,9 @@ internal sealed class Appearance : Window
     readonly Slider dock = new() { Minimum = 64, Maximum = 128, TickFrequency = 1, IsSnapToTickEnabled = true };
     readonly Slider size = new() { Minimum = 24, Maximum = 44, TickFrequency = 1, IsSnapToTickEnabled = true };
     readonly Slider radius = new() { Minimum = 0, Maximum = 36, TickFrequency = 1, IsSnapToTickEnabled = true };
-    readonly Slider faded = new() { Minimum = 20, Maximum = 80, TickFrequency = 1, IsSnapToTickEnabled = true };
-    readonly Slider hold = new() { Minimum = 1, Maximum = 10, TickFrequency = 1, IsSnapToTickEnabled = true };
+    readonly Slider faded = new() { Minimum = .5, Maximum = 99.5, TickFrequency = .5, IsSnapToTickEnabled = true };
+    readonly Slider hold = new() { Minimum = .5, Maximum = 10, TickFrequency = .5, IsSnapToTickEnabled = true };
+    readonly Slider logoSize = new() { Minimum = 120, Maximum = 280, TickFrequency = 10, IsSnapToTickEnabled = true };
     readonly ComboBox alignment = new() { ItemsSource = new[] { "left", "center", "right" }, MinWidth = 150 };
     readonly TextBlock status = Theme.Label("", 12, Theme.Muted);
     readonly Border previewBar = new(), previewDock = new();
@@ -38,7 +39,14 @@ internal sealed class Appearance : Window
         Heading("Taskbar interaction");
         Toggle("hover", "Let clicks through the taskbar when it covers an app", shell.Config.DockHoverThrough);
         body.Children.Add(new TextBlock { Text = "Hover to reach the app below. The first right-click activates the taskbar; another right-click opens app menus. Typing in an app keeps its taskbar faded and click-through.", FontSize = 12, Foreground = Theme.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 10), LineHeight = 19 });
-        Slider("Faded taskbar opacity", faded, shell.Config.DockFadeOpacity * 100, "%"); Slider("Stay usable after leaving", hold, shell.Config.DockInteractionDelay / 1000.0, "s");
+        Slider("Hover transparency", faded, shell.Config.TaskbarHoverTransparency, "%"); Slider("Stay usable after leaving", hold, shell.Config.DockInteractionDelay / 1000.0, "s");
+        Heading("Harbor Home");
+        Toggle("harbor-wallpaper", "Use Harbor’s blue folded background", shell.Config.HarborWallpaper);
+        Toggle("desktop-library", "Keep desktop icons inside the Harbor emblem", shell.Config.DesktopLibraryEnabled);
+        Toggle("desktop-spin", "Gently rotate the emblem while the desktop is visible", shell.Config.DesktopLogoSpin);
+        Toggle("startup-intro", "Show the cinematic startup intro", shell.Config.StartupIntroEnabled);
+        Slider("Desktop emblem size", logoSize, shell.Config.DesktopLogoSize);
+        var homeActions = new WrapPanel { Margin = new Thickness(0, 10, 0, 8) }; homeActions.Children.Add(Theme.Button("Open Harbor Home", "Open the desktop library", () => shell.OpenHome(shell.CurrentMonitor()))); homeActions.Children.Add(Theme.Button("Preview startup", "Play the Harbor startup intro", shell.PreviewIntro)); body.Children.Add(homeActions);
         Heading("Dock buttons (top)");
         Toggle("title", "Active window title", shell.Config.ShowActiveTitle); Toggle("clock", "Clock and calendar", shell.Config.ShowClock); Toggle("stats", "CPU and memory", shell.Config.ShowStats); Toggle("media", "Media controls", shell.Config.ShowMedia); Toggle("network", "Network status", shell.Config.ShowNetwork); Toggle("files", "Files button", shell.Config.ShowFilesButton); Toggle("mods", "Mods button", shell.Config.ShowModsButton);
         Heading("Base colors");
@@ -69,7 +77,8 @@ internal sealed class Appearance : Window
     {
         foreach (var color in colors) if (!System.Text.RegularExpressions.Regex.IsMatch(color.Value.Text, "^#[0-9a-fA-F]{6}$")) { status.Text = "Use six-digit colors such as #8AB4FF."; color.Value.Focus(); return; }
         var c = shell.Config; var oldVisibility = c.TopDockItems.ToDictionary(i => i.Id, i => BarLayout.Legacy(c, i.Id)); c.TopBarHeight = (int)top.Value; c.DockHeight = (int)dock.Value; c.IconSize = (int)size.Value; c.DockRadius = (int)radius.Value; c.DockAlignment = alignment.SelectedItem as string ?? "center";
-        c.DockHoverThrough = toggles["hover"].IsChecked == true; c.DockFadeOpacity = faded.Value / 100; c.DockInteractionDelay = (int)hold.Value * 1000;
+        c.DockHoverThrough = toggles["hover"].IsChecked == true; c.TaskbarHoverTransparency = faded.Value; c.DockFadeOpacity = 1 - faded.Value / 100; c.DockInteractionDelay = (int)Math.Round(hold.Value * 1000);
+        c.HarborWallpaper = toggles["harbor-wallpaper"].IsChecked == true; c.DesktopLibraryEnabled = toggles["desktop-library"].IsChecked == true; c.DesktopLogoSpin = toggles["desktop-spin"].IsChecked == true; c.StartupIntroEnabled = toggles["startup-intro"].IsChecked == true; c.DesktopLogoSize = (int)logoSize.Value;
         c.ShowActiveTitle = toggles["title"].IsChecked == true; c.ShowClock = toggles["clock"].IsChecked == true; c.ShowStats = toggles["stats"].IsChecked == true; c.ShowMedia = toggles["media"].IsChecked == true; c.ShowNetwork = toggles["network"].IsChecked == true; c.ShowFilesButton = toggles["files"].IsChecked == true; c.ShowModsButton = toggles["mods"].IsChecked == true;
         c.BackgroundColor = colors["background"].Text; c.PanelColor = colors["panel"].Text; c.Accent = colors["accent"].Text; c.TextColor = colors["text"].Text; c.MutedColor = colors["muted"].Text; c.RaisedColor = colors["raised"].Text; c.BorderColor = colors["border"].Text;
         foreach (var item in c.TopDockItems.Where(i => !i.Id.StartsWith("divider.") && oldVisibility.GetValueOrDefault(i.Id) != BarLayout.Legacy(c, i.Id))) item.Enabled = BarLayout.Legacy(c, item.Id);

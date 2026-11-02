@@ -82,7 +82,8 @@ internal sealed class Launcher : Window
         results.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter) { OpenSelected(); e.Handled = true; } };
         Loaded += (_, _) => { Populate(); Activate(); search.Focus(); KeyboardFocus(); };
         Closing += (_, _) => closing = true;
-        Deactivated += (_, _) => { if (!closing && !AnyMenuOpen()) Close(); };
+        // Shell's foreground watcher closes Apps for external apps. Harbor tool
+        // controls and their settings may take focus without closing Apps.
         Closed += (_, _) => { closing = true; debounce.Stop(); launchTimeout?.Stop(); shell.Catalog.Changed -= CatalogChanged; };
         shell.Catalog.Changed += CatalogChanged;
     }

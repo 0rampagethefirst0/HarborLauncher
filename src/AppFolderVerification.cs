@@ -26,6 +26,7 @@ internal static class AppFolderVerification
         var roundtrip = JsonSerializer.Deserialize<Settings>(JsonSerializer.Serialize(c))!; roundtrip.Normalize(); var savedCopy = roundtrip.TopDockItems.Single(i => i.Id == copy.Id);
         check("Custom pieces retain their format and content across settings reloads", savedCopy.TimeZone == "UTC" && savedCopy.Format == "HH:mm:ss" && roundtrip.TopDockItems.Any(i => i.Text == custom.Text), null);
         var editor = new DockPieceEditor(shell, copy); editor.Close(); bar.Close();
+        ShellFeatures.Request(c, "taskbar-folders", true); ShellFeatures.Request(c, "collection-tabs", true);
         c.Pins = Enumerable.Range(1, 5).Select(i => new Pin { Name = "App " + i, Path = @"C:\HarborFixture\App" + i + ".exe", Target = "fixture" + i }).ToList();
         var original = TaskbarFolders.AllApps(c).Select(p => p.Path).Order().ToArray(); var a = c.Pins[0]; var b = c.Pins[1]; var d = c.Pins[3]; var e = c.Pins[4]; var third = c.Pins[2];
         var folder = shell.DropTaskbarApps(new[] { a }, b, "folder")!;

@@ -29,7 +29,7 @@ internal static class ShellUiVerification
         c.TopDockEnabled = false; check("A hidden Dock releases its reserved screen space", BarLayout.ReservedTop(c, true) == 0, null);
         c.TopDockEnabled = true; c.TopDockReserveSpace = false; check("Overlay mode releases the Dock work area", BarLayout.ReservedTop(c, true) == 0, null);
         c.TopDockReserveSpace = true; c.TopDockPrimaryOnly = true; check("Main-display-only Dock reserves space only on that display", BarLayout.ReservedTop(c, false) == 0 && BarLayout.ReservedTop(c, true) == c.TopBarHeight, null); c.TopDockPrimaryOnly = false;
-        c.PreviewFramesPerSecond = 1000; c.Normalize(); check("Preview frame rates stay within the supported range", c.PreviewFramesPerSecond == 60 && ModDemoScene.Frames == 192 && Math.Abs(ModDemoScene.FrameMilliseconds - 1000d / 60) < .01, null);
+        c.PreviewFramesPerSecond = 1000; c.Normalize(); check("Preview frame rates stay within the supported range", c.PreviewFramesPerSecond == 144 && ModDemoScene.Frames == 288 && Math.Abs(ModDemoScene.FrameMilliseconds - 1000d / 90) < .01, null);
         var model = new Shell(c); var bar = new TopBar(model, model.CurrentMonitor()); bar.PreparePreview();
         bar.MoveButton("mods", "apps", "left");
         check("The Dock drop action updates and saves button order", c.TopDockItems.FindIndex(i => i.Id == "mods") + 1 == c.TopDockItems.FindIndex(i => i.Id == "apps") && Settings.Load().TopDockItems.First(i => i.Id == "mods").Group == "left", null);

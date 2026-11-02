@@ -17,6 +17,7 @@ internal static class ModDemoRecorder
         foreach (string path in Directory.EnumerateFiles(sourceDirectory, "*.png"))
         {
             string destination = Path.Combine(destinationDirectory, Path.GetFileName(path));
+            if (File.Exists(destination) && File.GetLastWriteTimeUtc(destination) >= File.GetLastWriteTimeUtc(path) && new FileInfo(destination).Length > 0) continue;
             if (!path.EndsWith("-film.png", StringComparison.Ordinal)) { File.Copy(path, destination, true); continue; }
             var input = new BitmapImage(); input.BeginInit(); input.CacheOption = BitmapCacheOption.OnLoad; input.UriSource = new Uri(path); input.EndInit();
             var palette = new BitmapPalette(input, 256); var pixels = new byte[input.PixelWidth * input.PixelHeight * 4];
@@ -40,14 +41,17 @@ internal static class ModDemoRecorder
         path = Path.GetFullPath(path); Directory.CreateDirectory(Path.GetDirectoryName(path)!); Settings.TestDataDir = Path.Combine(Path.GetTempPath(), "HarborCatalog-" + Guid.NewGuid().ToString("N"));
         var mods = new Mods(Settings.Load()); File.WriteAllText(path, JsonSerializer.Serialize(mods.Catalog.Where(m => m.Id.StartsWith("harbor.")).ToList(), Mods.Json));
     }
-    internal static void Record(string directory)
+    internal static void Record(string directory, bool widgetsOnly = false, string? onlyId = null)
     {
         directory = Path.GetFullPath(directory); Directory.CreateDirectory(directory);
         Settings.TestDataDir = Path.Combine(directory, "profile");
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown }; Theme.Install();
         var model = new Shell(Settings.Load()); var report = new List<object>();
+        var selected = model.Mods.Catalog.Where(m => m.Id.StartsWith("harbor.") && (!widgetsOnly || m.Kind == "widget") && (onlyId == null || m.Id == onlyId)).ToArray();
+        using var previous = (widgetsOnly || onlyId != null) && File.Exists(Path.Combine(directory, "demos.json")) ? JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "demos.json"))) : null;
         try {
-            foreach (var mod in model.Mods.Catalog.Where(m => m.Id.StartsWith("harbor.")))
+            if (selected.Length == 0) throw new InvalidOperationException("No matching built-in demo.");
+            foreach (var mod in selected)
             {
                 var demo = new ModDemoScene(model, mod);
                 demo.Draw(.72); Save(Snapshot(demo.View), Path.Combine(directory, mod.Id + ".png"));
@@ -61,18 +65,21 @@ internal static class ModDemoRecorder
                 Save(strip, Path.Combine(directory, mod.Id + "-film.png"));
                 report.Add(new { mod.Id, mod.Component, Renderer = demo.Renderer, Caption = demo.Instruction, FrameCount = ModDemoScene.Frames, Poster = mod.Id + ".png", Film = mod.Id + "-film.png" });
             }
-            File.WriteAllText(Path.Combine(directory, "demos.json"), JsonSerializer.Serialize(new { Width = ModDemoScene.Width, Height = ModDemoScene.Height, FilmWidth = ModDemoScene.FilmWidth, FilmHeight = ModDemoScene.FilmHeight, Columns = ModDemoScene.Columns, Frames = ModDemoScene.Frames, FrameMilliseconds = ModDemoScene.FrameMilliseconds, FramesPerSecond = 60, SampleData = true, DesktopChanged = false, Items = report }, Mods.Json));
+            if (previous != null) { var updated = selected.Select(m => m.Id).ToHashSet(); foreach (var item in previous.RootElement.GetProperty("Items").EnumerateArray()) if (!updated.Contains(item.GetProperty("Id").GetString()!)) report.Add(item.Clone()); }
+            File.WriteAllText(Path.Combine(directory, "demos.json"), JsonSerializer.Serialize(new { Width = ModDemoScene.Width, Height = ModDemoScene.Height, FilmWidth = ModDemoScene.FilmWidth, FilmHeight = ModDemoScene.FilmHeight, Columns = ModDemoScene.Columns, Frames = ModDemoScene.Frames, FrameMilliseconds = ModDemoScene.FrameMilliseconds, FramesPerSecond = 90, SampleData = true, DesktopChanged = false, Items = report }, Mods.Json));
+            int galleryHeight = (int)Math.Ceiling(model.Mods.Catalog.Count(m => m.Id.StartsWith("harbor.")) / 4d) * 225;
             var overview = new DrawingVisual(); using (var dc = overview.RenderOpen())
             {
-                dc.DrawRectangle(Theme.Bg, null, new Rect(0, 0, 1440, 2025)); int index = 0;
+                dc.DrawRectangle(Theme.Bg, null, new Rect(0, 0, 1440, galleryHeight)); int index = 0;
                 foreach (var mod in model.Mods.Catalog.Where(m => m.Id.StartsWith("harbor."))) {
+                    if (!File.Exists(Path.Combine(directory, mod.Id + ".png"))) continue;
                     var image = new BitmapImage(new Uri(Path.Combine(directory, mod.Id + ".png")));
                     double x = index % 4 * 360, y = index / 4 * 225;
                     dc.DrawImage(image, new Rect(x, y, 360, 200));
                     dc.DrawText(new FormattedText(mod.Name, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 13, Theme.Text, 1), new Point(x + 8, y + 203)); index++;
                 }
             }
-            var gallery = new RenderTargetBitmap(1440, 2025, 96, 96, PixelFormats.Pbgra32); gallery.Render(overview); Save(gallery, Path.Combine(directory, "overview.png"));
+            var gallery = new RenderTargetBitmap(1440, galleryHeight, 96, 96, PixelFormats.Pbgra32); gallery.Render(overview); Save(gallery, Path.Combine(directory, "overview.png"));
         } catch (Exception ex) { File.WriteAllText(Path.Combine(directory, "error.txt"), ex.ToString()); Environment.ExitCode = 1; }
         application.Shutdown();
     }

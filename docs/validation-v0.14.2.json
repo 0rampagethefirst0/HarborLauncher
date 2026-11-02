@@ -1,0 +1,14 @@
+{
+  "Version": "0.14.2",
+  "NativeChecks": 345,
+  "ScrollChecks": 15,
+  "BundledPackages": 57,
+  "SourceBuild": "passed",
+  "CommunityTypesAndGuides": "passed",
+  "Privacy": "Only check names, results and aggregate runtime fields are published. User profiles and test fixtures are excluded.",
+  "Limits": [
+    "Offscreen screenshots do not verify physical input.",
+    "Animation update targets do not guarantee presented FPS.",
+    "Hosted community deploys separately."
+  ]
+}

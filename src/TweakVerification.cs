@@ -86,6 +86,7 @@ internal static class TweakVerification
         C("Profile import and export preserve mod option values", read.Options[newer.Id]["accent"] == profile.Options[newer.Id]["accent"]);
 
         mods.Enable(label, true); mods.Configure(label, new Dictionary<string, string> { ["label"] = "app", ["width"] = "120", ["when"] = "always" });
+        bool showRunningApps = config.TaskbarShowRunningApps; config.TaskbarShowRunningApps = true;
         IntPtr monitor = shell.CurrentMonitor(); var first = new WindowEntry(new IntPtr(101), "First app window", @"C:\test-one.exe", "One", monitor); shell.Tracker.LoadPreview(new[] { first });
         var dock = new Dock(shell, monitor); dock.Refresh(); var items = (StackPanel)((ScrollViewer)((Grid)dock.Content).Children.OfType<Border>().First().Child).Content;
         var button = items.Children.OfType<Button>().First(b => AutomationProperties.GetAutomationId(b) == "run:" + first.Key); var body = (Grid)button.Content;
@@ -95,10 +96,11 @@ internal static class TweakVerification
         C("A faded dock has native click-through and no-activate styles", (Native.GetWindowLong(dockHandle, -20).ToInt64() & 0x08000020) == 0x08000020 && dock.InputPassThrough && !dock.IsHitTestVisible && Math.Abs(dock.Opacity - .45) < .001);
         dock.SetInputMode(false, .45);
         C("An interactive dock restores native hit testing and full opacity", (Native.GetWindowLong(dockHandle, -20).ToInt64() & 0x08000020) == 0 && !dock.InputPassThrough && dock.IsHitTestVisible && dock.Opacity == 1);
-        dock.Close(); mods.Enable(label, false);
+        dock.Close(); config.TaskbarShowRunningApps = showRunningApps; mods.Enable(label, false);
         var monitorBounds = Native.Monitor(monitor).Monitor; var controlBox = new DockControls(shell, monitor, monitorBounds);
-        var controlBody = (StackPanel)((Border)controlBox.Content).Child;
-        C("The dock modifier exposes exactly its six requested settings", controlBody.Children.OfType<CheckBox>().Count() == 2 && controlBody.Children.OfType<Slider>().Count() == 4); controlBox.Close();
+        IEnumerable<DependencyObject> Contents(DependencyObject root) { yield return root; foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) foreach (var nested in Contents(child)) yield return nested; }
+        C("Taskbar style keeps three independent half-step transparency controls", Contents(controlBox).OfType<Slider>().Count(s => s.Minimum == .5 && s.Maximum == 99.5 && s.TickFrequency == .5) == 3);
+        controlBox.PreparePreview("Apps"); C("Folder app sizing remains available in the Apps tab", Contents(controlBox).OfType<Slider>().Any(s => AutomationProperties.GetName(s) == "Apps inside folders" && s.Maximum == 96)); controlBox.Close();
         config.DockMotionMilliseconds = 900; config.Normalize(); bool bounded = config.DockMotionMilliseconds == 350; config.DockMotionMilliseconds = 0; config.Normalize(); C("Dock animation duration is bounded and supports turning motion off", bounded && config.DockMotionMilliseconds == 0); config.DockMotionMilliseconds = 170;
 
         using (var window = new NativeWindow())
@@ -110,6 +112,7 @@ internal static class TweakVerification
             C("Native always-on-top captures restoration data before applying", (Native.GetWindowLong(h, -20).ToInt64() & 8) != 0 && savedState.WindowEffects.Any(s => s.Handle == h.ToInt64() && s.RestoreTopmost), new { SetResult = setTop, CurrentStyle = Native.GetWindowLong(h, -20).ToInt64(), OriginalStyle = original, Parent = Native.GetParent(h).ToInt64(), WindowStyle = Native.GetWindowLong(h, -16).ToInt64(), Matches = WindowEffects.Matches(top), State = savedState.WindowEffects });
             var opacity = recovery.AcquireEffect(h, "window-opacity")!; WindowEffects.SetOpacity(opacity, 50); WindowEffects.GetLayeredWindowAttributes(h, out _, out byte alpha, out _);
             C("Native opacity applies an exact half-opacity alpha", alpha == 128);
+            WindowEffects.SetOpacity(opacity, .5); WindowEffects.GetLayeredWindowAttributes(h, out _, out byte minimumAlpha, out _); C("Window opacity accepts a fractional half-percent value", minimumAlpha == 1); WindowEffects.SetOpacity(opacity, 50);
             var recorded = JsonSerializer.Deserialize<RecoveryState>(AtomicFile.ReadText(Path.Combine(Settings.DataDir, "recovery.json")))!;
             C("Recovery state serializes both effects with window identity tokens", recorded.WindowEffects.Count == 1 && recorded.WindowEffects[0].RestoreTopmost && recorded.WindowEffects[0].RestoreOpacity && recorded.WindowEffects[0].Token != 0);
             var wrong = JsonSerializer.Deserialize<WindowEffectState>(JsonSerializer.Serialize(recorded.WindowEffects[0]))!; wrong.Token++; WindowEffects.Restore(wrong);

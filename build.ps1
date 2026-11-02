@@ -7,8 +7,20 @@ if (-not $Sdk) {
 $publish = Join-Path $PSScriptRoot ('Build\' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 & $Sdk publish (Join-Path $PSScriptRoot 'src\Harbor.csproj') -c Release --self-contained false -o $publish --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Harbor build failed.' }
+& $Sdk publish (Join-Path $PSScriptRoot 'SessionSource\HarborSession.csproj') -c Release --self-contained false -o (Join-Path $publish 'Session') --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Harbor sign-in supervisor build failed.' }
 $exe = Join-Path $PSScriptRoot 'App\Harbor.exe'
 if ($BuildOnly) { Write-Output "Build ready: $publish"; return }
+$sessionExe = Join-Path $PSScriptRoot 'Session\HarborSession.exe'
+if (Test-Path -LiteralPath $sessionExe) {
+    Start-Process -FilePath $sessionExe -ArgumentList '--stop' -WindowStyle Hidden -Wait
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+        $hostProcesses = @(Get-CimInstance Win32_Process -Filter "Name='HarborSession.exe'" | Where-Object { $_.ExecutablePath -eq $sessionExe })
+        if ($hostProcesses.Count -eq 0) { break }
+        Start-Sleep -Milliseconds 200
+    }
+    if ($hostProcesses.Count -gt 0) { throw 'The session supervisor is still closing. The running installation has not been changed.' }
+}
 $running = @(Get-CimInstance Win32_Process -Filter "Name='Harbor.exe'" | Where-Object { $_.ExecutablePath -eq $exe })
 $restart = @($running | Where-Object { $_.CommandLine -notmatch '--(watchdog|status|quit|verify|render-check|probe-shell|restore)' }).Count -gt 0
 if ($running.Count -gt 0) {
@@ -22,6 +34,8 @@ if ($running.Count -gt 0) {
 }
 New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'App') -Force | Out-Null
 Get-ChildItem -LiteralPath $publish -File | Copy-Item -Destination (Join-Path $PSScriptRoot 'App') -Force
+New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'Session') -Force | Out-Null
+Get-ChildItem -LiteralPath (Join-Path $publish 'Session') -File | Copy-Item -Destination (Join-Path $PSScriptRoot 'Session') -Force
 if ($restart) { Start-Process -FilePath $exe -WindowStyle Hidden }
 if ($Install) {
     $desktop = [Environment]::GetFolderPath('DesktopDirectory')

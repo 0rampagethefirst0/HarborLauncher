@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Diagnostics;
 using System.Threading;
@@ -22,20 +22,21 @@ internal static class CatalogMotion
             if (config.DockMotionMilliseconds == 0 || Window.GetWindow(element)?.IsActive != true) return;
             var move = new TranslateTransform(); element.RenderTransform = move;
             var duration = TimeSpan.FromMilliseconds(Math.Max(140, config.DockMotionMilliseconds));
-            element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
-            move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(12, 0, duration) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+            element.BeginAnimation(UIElement.OpacityProperty, Motion.Track(new DoubleAnimation(0, 1, duration) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } }));
+            move.BeginAnimation(TranslateTransform.YProperty, Motion.Track(new DoubleAnimation(12, 0, duration) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } }));
         };
     }
     internal static void Hover(FrameworkElement element, Settings config)
     {
         var move = new TranslateTransform(); element.RenderTransform = move;
-        void To(double value) { if (config.DockMotionMilliseconds > 0) move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(value, TimeSpan.FromMilliseconds(config.DockMotionMilliseconds)) { EasingFunction = new QuadraticEase() }); }
+        void To(double value) { if (config.DockMotionMilliseconds > 0) move.BeginAnimation(TranslateTransform.YProperty, Motion.Track(new DoubleAnimation(value, TimeSpan.FromMilliseconds(config.DockMotionMilliseconds)) { EasingFunction = new QuadraticEase() })); }
         element.MouseEnter += (_, _) => To(-3); element.MouseLeave += (_, _) => To(0);
     }
 }
 
 internal sealed class ModBanner : Border
 {
+    static readonly DependencyProperty PulseProperty = DependencyProperty.Register("PreviewPulse", typeof(double), typeof(ModBanner), new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender));
     static ModBanner? playing;
     static readonly SemaphoreSlim decoding = new(1);
     readonly Image image = new() { Stretch = Stretch.Uniform };
@@ -44,6 +45,7 @@ internal sealed class ModBanner : Border
     readonly bool autoplay;
     readonly Stopwatch playback = new();
     bool subscribed;
+    AnimationTiming? cadence;
     bool loading;
     int loadVersion;
     long drawBucket = -1;
@@ -93,7 +95,9 @@ internal sealed class ModBanner : Border
         if (version != loadVersion) return;
         if (loaded == null || !IsVisible || owner?.IsActive != true || config.DockMotionMilliseconds == 0) { Stop(); return; }
         film = loaded;
+        cadence?.Dispose(); cadence = new AnimationTiming();
         playing = this; frame = 0; drawBucket = -1; playLabel.Text = config.PreviewFramesPerSecond + " FPS preview"; SetFrame(0); playback.Restart(); CompositionTarget.Rendering += RenderFrame; subscribed = true;
+        var pulse = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever }; Timeline.SetDesiredFrameRate(pulse, config.AnimationFramesPerSecond); BeginAnimation(PulseProperty, pulse);
     }
     void RenderFrame(object? sender, EventArgs args)
     {
@@ -111,7 +115,7 @@ internal sealed class ModBanner : Border
     }
     internal void PreparePreviewFrame(int index) { film = Load(mod.Id + "-film.png"); SetFrame(Math.Clamp(index, 0, ModDemoScene.Frames - 1)); }
     internal static Task<BitmapSource?> DecodeFilmAsync(string id) => Task.Run(() => Load(id + "-film.png"));
-    void Stop() { Interlocked.Increment(ref loadVersion); loading = false; if (subscribed) CompositionTarget.Rendering -= RenderFrame; subscribed = false; playback.Stop(); image.Source = poster; film = null; playLabel.Text = "Hover to play"; if (ReferenceEquals(playing, this)) playing = null; }
+    void Stop() { Interlocked.Increment(ref loadVersion); loading = false; if (subscribed) CompositionTarget.Rendering -= RenderFrame; subscribed = false; cadence?.Dispose(); cadence = null; BeginAnimation(PulseProperty, null); playback.Stop(); image.Source = poster; film = null; playLabel.Text = "Hover to play"; if (ReferenceEquals(playing, this)) playing = null; }
     static BitmapSource? Load(string name)
     {
         try { var info = Application.GetResourceStream(new Uri("pack://application:,,,/Harbor;component/Previews/" + name)); if (info == null) return null; using (info.Stream) return Decode(info.Stream, false); } catch (IOException) { return null; }

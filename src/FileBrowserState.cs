@@ -16,7 +16,7 @@ internal sealed class FileTab
     internal string Name => Label ?? (Path.GetFileName(Folder.TrimEnd(Path.DirectorySeparatorChar)) is string name && name.Length > 0 ? name : Folder);
     internal void Visit(string path, bool history)
     {
-        if (!TaskbarFolders.IsFolder(path) && path != Files.HomePath) path = Path.GetFullPath(path);
+        if (!TaskbarFolders.IsFolder(path) && path != Files.HomePath && path != Files.FrequentPath && path != RecycleBin.Location) path = Path.GetFullPath(path);
         if (history && Folder.Length > 0 && !Folder.Equals(path, StringComparison.OrdinalIgnoreCase)) { Back.Push(Folder); Forward.Clear(); }
         Folder = path;
     }
@@ -25,13 +25,17 @@ internal sealed class FileTab
 }
 internal static class FileBrowserState
 {
+    internal static bool Matches(string name, string term) => term.IndexOfAny(new[] { '*', '?' }) >= 0 ? System.IO.Enumeration.FileSystemName.MatchesSimpleExpression(term.Trim(), name, true) : name.Contains(term.Trim(), StringComparison.CurrentCultureIgnoreCase);
     internal static List<FileEntry> Query(IEnumerable<FileEntry> entries, string term, string sort, bool descending)
     {
-        var filtered = entries.Where(e => e.Name.Contains(term.Trim(), StringComparison.CurrentCultureIgnoreCase));
+        var filtered = entries.Where(e => Matches(e.Name, term));
         IOrderedEnumerable<FileEntry> sorted = filtered.OrderByDescending(e => e.Folder);
         return (sort switch {
             "Modified" => descending ? sorted.ThenByDescending(e => e.Modified) : sorted.ThenBy(e => e.Modified),
             "Size" => descending ? sorted.ThenByDescending(e => e.Bytes) : sorted.ThenBy(e => e.Bytes),
+            "Created" => descending ? sorted.ThenByDescending(e => e.CreatedAt) : sorted.ThenBy(e => e.CreatedAt),
+            "Extension" => descending ? sorted.ThenByDescending(e => e.Extension) : sorted.ThenBy(e => e.Extension),
+            "Attributes" => descending ? sorted.ThenByDescending(e => e.Attributes) : sorted.ThenBy(e => e.Attributes),
             "Type" => descending ? sorted.ThenByDescending(e => e.Kind) : sorted.ThenBy(e => e.Kind),
             _ => descending ? sorted.ThenByDescending(e => e.Name, StringComparer.CurrentCultureIgnoreCase) : sorted.ThenBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)
         }).ToList();

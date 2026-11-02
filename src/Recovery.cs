@@ -22,6 +22,8 @@ internal sealed class RecoveryState
     public bool DesktopReplacement { get; set; }
     public List<long> DesktopWindows { get; set; } = new();
     public List<WindowEffectState> WindowEffects { get; set; } = new();
+    public bool ShellSession { get; set; }
+    public bool ShellReady { get; set; }
 }
 internal sealed class SavedWorkArea
 {
@@ -53,7 +55,7 @@ internal sealed class Recovery : IDisposable
         if (!watchdog && Settings.TestDataDir == null) throw new InvalidOperationException("A recovery check requires an isolated profile.");
         RecoverStale();
         using var p = Process.GetCurrentProcess();
-        state = new RecoveryState { ProcessId = p.Id, StartTicks = p.StartTime.ToUniversalTime().Ticks, TaskbarState = Native.TaskbarState() };
+        state = new RecoveryState { ProcessId = p.Id, StartTicks = p.StartTime.ToUniversalTime().Ticks, TaskbarState = Native.TaskbarState(), ShellSession = Harbor.ShellSession.IsShellProcess };
         CaptureWorkAreas();
         Write(true);
         if (!watchdog) return;
@@ -62,6 +64,7 @@ internal sealed class Recovery : IDisposable
         Process.Start(start)?.Dispose();
     }
     int writeFailures;
+    internal void MarkShellReady() { state.ShellReady = true; Write(true); }
     internal WindowEffectState? AcquireEffect(IntPtr window, string effect)
     {
         state.WindowEffects.RemoveAll(s => !Harbor.WindowEffects.Matches(s));
@@ -245,6 +248,9 @@ internal sealed class Recovery : IDisposable
             try { File.Delete(StatePath); } catch { }
         }
         Log.Write("Recovery helper finished.");
+        // The supervisor restarts failures. If it disappeared too, leave a usable
+        // desktop instead of a blank screen.
+        if (state?.ShellSession == true && !Harbor.ShellSession.HostRunning) Harbor.ShellSession.EnsureExplorer();
     }
     internal static void ForceRestore()
     {

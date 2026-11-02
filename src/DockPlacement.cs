@@ -81,7 +81,7 @@ internal sealed class DockPlacementPanel : Panel
     protected override Size MeasureOverride(Size availableSize)
     {
         widths.Clear(); double height = 0;
-        foreach (FrameworkElement child in InternalChildren) { child.Measure(new Size(double.PositiveInfinity, availableSize.Height)); widths[(string)child.Tag] = child.DesiredSize.Width; height = Math.Max(height, child.DesiredSize.Height); }
+        foreach (FrameworkElement child in InternalChildren) { if (child.Visibility == Visibility.Collapsed) continue; child.Measure(new Size(double.PositiveInfinity, availableSize.Height)); widths[(string)child.Tag] = child.DesiredSize.Width; height = Math.Max(height, child.DesiredSize.Height); }
         return new Size(widths.Values.Sum(), height);
     }
     protected override Size ArrangeOverride(Size finalSize)
@@ -90,7 +90,7 @@ internal sealed class DockPlacementPanel : Panel
         var previous = Slots.ToDictionary(s => s.Id, s => s.Left);
         Slots = Calculate(Moving, Position);
         var lookup = Slots.ToDictionary(s => s.Id);
-        foreach (FrameworkElement child in InternalChildren) { var slot = lookup[(string)child.Tag]; child.Arrange(new Rect(slot.Left, 0, slot.Width, finalSize.Height)); if (Moving == null && previous.TryGetValue(slot.Id, out double before)) Motion.Move(child, before - slot.Left); }
+        foreach (FrameworkElement child in InternalChildren) { if (!lookup.TryGetValue((string)child.Tag, out var slot)) continue; child.Arrange(new Rect(slot.Left, 0, slot.Width, finalSize.Height)); if (Moving == null && previous.TryGetValue(slot.Id, out double before)) Motion.Move(child, before - slot.Left); }
         return finalSize;
     }
     internal List<DockSlot> Calculate(string? id = null, double? position = null) => DockPlacement.Arrange(config.TopDockItems, widths, UsableWidth, id, position);

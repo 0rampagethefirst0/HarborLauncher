@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Automation;
@@ -69,7 +69,7 @@ internal sealed class AppFolderPopup : Window
     readonly AppFolder folder;
     readonly WrapPanel apps = new();
     readonly TextBlock title;
-    bool dragging, editing;
+    bool dragging, editing, closing;
     internal AppFolderPopup(Shell shell, AppFolder folder, IntPtr monitor)
     {
         this.shell = shell; this.folder = folder; Title = "Harbor — " + folder.Name; Theme.PopupWindow(this, 600, 500, monitor, true);
@@ -80,21 +80,25 @@ internal sealed class AppFolderPopup : Window
         var card = Theme.Card(root, 17); Content = card;
         root.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) ? DragDropEffects.Move : e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Link : DragDropEffects.None; e.Handled = true; };
         root.Drop += (_, e) => { foreach (var pin in TaskbarFolders.Shortcuts(e.Data)) TaskbarFolders.Add(shell.Config, folder, pin); shell.SaveShortcuts(); e.Handled = true; };
-        shell.ShortcutsChanged += Render; Closed += (_, _) => shell.ShortcutsChanged -= Render; Deactivated += (_, _) => { if (!dragging && !editing) Close(); };
-        if (shell.Config.DockMotionMilliseconds > 0 && Settings.TestDataDir == null) { var slide = new TranslateTransform(); card.RenderTransform = slide; Loaded += (_, _) => slide.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(18, 0, TimeSpan.FromMilliseconds(shell.Config.DockMotionMilliseconds)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } }); }
+        shell.ShortcutsChanged += Render;
+        Closing += (_, _) => closing = true;
+        Closed += (_, _) => { closing = true; shell.ShortcutsChanged -= Render; };
+        Deactivated += (_, _) => { if (!dragging && !editing) RequestClose(); };
+        if (shell.Config.DockMotionMilliseconds > 0 && Settings.TestDataDir == null) { var slide = new TranslateTransform(); card.RenderTransform = slide; Loaded += (_, _) => slide.BeginAnimation(TranslateTransform.YProperty, Motion.Track(new DoubleAnimation(18, 0, TimeSpan.FromMilliseconds(shell.Config.DockMotionMilliseconds)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } })); }
         Render();
     }
     void Render()
     {
-        if (dragging) return; if (!shell.Config.AppFolders.Contains(folder)) { if (IsLoaded) Close(); return; }
+        if (closing || dragging) return; if (!shell.Config.AppFolders.Contains(folder)) { if (IsLoaded) RequestClose(); return; }
         title.Text = folder.Name; Title = "Harbor — " + folder.Name; apps.Children.Clear();
         foreach (var pin in folder.Apps.ToArray()) {
-            var content = new StackPanel { Width = 110, Margin = new Thickness(4, 12, 4, 12) }; content.Children.Add(Theme.AppIcon(pin.Path, pin.Name, 48)); var label = Theme.Label(pin.Name, 14); label.TextAlignment = TextAlignment.Center; label.TextWrapping = TextWrapping.Wrap; label.MaxHeight = 42; label.Margin = new Thickness(0, 11, 0, 0); content.Children.Add(label);
-            var button = Theme.Button(content, pin.Name, () => { if (AppDrag.Suppressed) return; shell.ActivateApp(pin); Close(); }); button.ContextMenu = FolderUi.AppMenu(shell, folder, pin); AutomationProperties.SetAutomationId(button, "folder-app:" + pin.Path); button.AllowDrop = true;
+            var content = new StackPanel { Width = Math.Clamp(shell.Config.BulkAppSize + 62, 90, 158), Margin = new Thickness(4, 12, 4, 12) }; content.Children.Add(Theme.AppIcon(pin.Path, pin.Name, shell.Config.BulkAppSize)); var label = Theme.Label(pin.Name, 14); label.TextAlignment = TextAlignment.Center; label.TextWrapping = TextWrapping.Wrap; label.MaxHeight = 42; label.Margin = new Thickness(0, 11, 0, 0); content.Children.Add(label);
+            var button = Theme.Button(content, pin.Name, () => { if (AppDrag.Suppressed) return; shell.ActivateApp(pin); RequestClose(); }); button.ContextMenu = FolderUi.AppMenu(shell, folder, pin); AutomationProperties.SetAutomationId(button, "folder-app:" + pin.Path); button.AllowDrop = true;
             AppDrag.Bind(button, () => pin, value => { dragging = value; if (!value) Dispatcher.BeginInvoke(new Action(Render)); });
             button.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(TaskbarFolders.DragFormat) ? DragDropEffects.Move : DragDropEffects.Link; e.Handled = true; button.Background = Theme.Raised; };
             button.DragLeave += (_, _) => button.ClearValue(BackgroundProperty);
             button.Drop += (_, e) => { bool after = e.GetPosition(button).X > button.ActualWidth / 2; foreach (var source in TaskbarFolders.Shortcuts(e.Data)) TaskbarFolders.Add(shell.Config, folder, source, pin.Path, after); shell.SaveShortcuts(); button.ClearValue(BackgroundProperty); e.Handled = true; }; apps.Children.Add(button);
         }
     }
+    internal void RequestClose() { if (closing) return; closing = true; Close(); }
 }

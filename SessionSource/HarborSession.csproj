@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>enable</Nullable>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier><PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>HarborSession</AssemblyName><Version>0.14.2</Version>
+    <DebugType>none</DebugType><DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="..\src\ShellSession.cs" Link="ShellSession.cs" /><Compile Include="..\src\StartupApps.cs" Link="StartupApps.cs" /></ItemGroup>
+</Project>

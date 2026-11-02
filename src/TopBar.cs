@@ -60,19 +60,20 @@ internal sealed class TopBar : Window
     {
         FrameworkElement element;
         string kind = BarLayout.Component(item);
-        if (item.Id.StartsWith("divider.")) element = new Border { Width = item.Space ? 20 : 1, Height = 18, VerticalAlignment = VerticalAlignment.Center, Background = item.Space ? Brushes.Transparent : Theme.Line };
+        if (item.Id.StartsWith("divider.")) { var divider = new DividerVisual(value => item.Width = (int)value, Changed); divider.Configure(item.Width, item.DividerThickness, item.DividerLength, item.Space, shell.Config.TopBarHeight - 8); element = divider; }
         else
         {
             UIElement content = kind switch {
                 "apps" => shell.Config.TopDockBrandText ? UiIcons.Label("Harbor", shell.Config.TopDockFontSize, "apps") : Theme.Logo(shell.Config.TopDockIconSize),
                 "title" or "clock" or "date" or "time" or "cpu" or "memory" or "stats" or "text" => Text(),
                 "app" => Theme.AppIcon(item.Target, BarLayout.Label(item), shell.Config.TopDockIconSize),
+                "plugin" => PluginContent(),
                 _ => UiIcons.Icon(kind == "settings" ? "controls" : kind, shell.Config.TopDockIconSize)
             };
-            var button = Theme.Button(content, BarLayout.Label(item), () => { if (Environment.TickCount64 < suppressClick) return; if (kind == "app") { if (item.Target.Length > 0) shell.Launch(item.Target); } else ActivateItem(kind); }); button.Padding = new Thickness(shell.Config.TopDockPadding, 0, shell.Config.TopDockPadding, 0); element = button;
+            var button = Theme.Button(content, BarLayout.Label(item), () => { if (Environment.TickCount64 < suppressClick) return; if (kind == "app") { if (item.Target.Length > 0) shell.Launch(item.Target); } else if (kind == "plugin") shell.OpenPlugin(item.Target, MonitorHandle); else ActivateItem(kind); }); button.Padding = new Thickness(shell.Config.TopDockPadding, 0, shell.Config.TopDockPadding, 0); element = button;
             if (kind == "title") button.MouseDoubleClick += (_, e) => { if (shell.Tweaks.Has("title-actions") && Target() != IntPtr.Zero) { Native.ShowWindow(lastExternal, Native.IsZoomed(lastExternal) ? 9 : 3); Native.Activate(lastExternal); e.Handled = true; } };
         }
-        if (item.Width > 0) element.Width = item.Width;
+        if (item.Width > 0 && !item.Id.StartsWith("divider.")) element.Width = item.Width;
         element.Tag = item.Id; element.AllowDrop = true; element.Margin = new Thickness(shell.Config.TopDockGap + (item.Id.StartsWith("divider.") ? 7 : 0), 0, shell.Config.TopDockGap + (item.Id.StartsWith("divider.") ? 7 : 0), 0);
         AutomationProperties.SetAutomationId(element, "top-dock:" + item.Id); element.ToolTip = BarLayout.Label(item) + " · drag to move · right-click to customize";
         var menu = new ContextMenu(); element.ContextMenu = menu; element.ContextMenuOpening += (_, _) => ItemMenu(menu, item);
@@ -87,6 +88,7 @@ internal sealed class TopBar : Window
         };
         return element;
         TextBlock Text() { var text = Theme.Label("", item.FontSize > 0 ? item.FontSize : shell.Config.TopDockFontSize, kind is "title" or "stats" or "cpu" or "memory" ? Theme.Muted : null); text.TextTrimming = TextTrimming.CharacterEllipsis; if (kind == "title") text.MaxWidth = shell.Config.TopDockTitleWidth; labels[item.Id] = text; return text; }
+        UIElement PluginContent() { var panel = new StackPanel { Orientation = Orientation.Horizontal }; var mod = shell.Mods.Catalog.FirstOrDefault(m => m.Id == item.Target); panel.Children.Add(UiIcons.Icon(mod == null ? "mods" : PluginPresentation.Icon(mod), shell.Config.TopDockIconSize)); var text = Text(); text.Margin = new Thickness(6, 0, 0, 0); text.MaxWidth = 130; panel.Children.Add(text); return panel; }
     }
     void ActivateItem(string id)
     {
@@ -100,12 +102,14 @@ internal sealed class TopBar : Window
     void ItemMenu(ContextMenu menu, BarItem item)
     {
         menu.Items.Clear(); menu.Items.Add(Theme.Item("Dock controls", () => shell.OpenTopDockControls(MonitorHandle)));
+        if (item.Id.StartsWith("divider.")) menu.Items.Add(Theme.Item("Divider settings", () => new DividerEditor(shell, "Dock divider", () => item.Width <= 0 ? 24 : item.Width, v => item.Width = (int)v, () => item.DividerThickness, v => item.DividerThickness = v, () => item.DividerLength, v => item.DividerLength = v, () => item.Space, v => item.Space = v, direction => { var slot = layout.Slots.FirstOrDefault(s => s.Id == item.Id); if (slot.Id != null) PlaceButton(item.Id, slot.Left + slot.Width / 2 + direction * 12); }, Changed).Show()));
         menu.Items.Add(Theme.Item("Edit piece", () => new DockPieceEditor(shell, item).Show()));
         menu.Items.Add(Theme.Item("Duplicate", () => { BarLayout.Duplicate(shell.Config, item); Changed(); }));
         foreach (string group in new[] { "left", "center", "right" }) menu.Items.Add(Theme.Item("Move to " + group, () => { BarLayout.Move(shell.Config, item.Id, null, group); Changed(); }));
         menu.Items.Add(Theme.Item("Add divider before", () => { BarLayout.AddDivider(shell.Config, item.Group, item.Id); Changed(); })); menu.Items.Add(Theme.Item("Add space before", () => { BarLayout.AddDivider(shell.Config, item.Group, item.Id, true); Changed(); }));
-        menu.Items.Add(Theme.Item(item.Id.StartsWith("divider.") ? "Remove divider" : "Hide button", () => { if (item.Id.StartsWith("divider.")) shell.Config.TopDockItems.Remove(item); else BarLayout.Enable(shell.Config, item, false); Changed(); }));
-        if (item.Id.StartsWith("part.")) menu.Items.Add(Theme.Item("Remove piece", () => { shell.Config.TopDockItems.Remove(item); Changed(); }));
+        menu.Items.Add(Theme.Item(item.Id.StartsWith("divider.") ? "Remove divider" : "Hide button", () => { if (item.Id.StartsWith("divider.")) shell.Config.TopDockItems.Remove(item); else BarLayout.Enable(shell.Config, item, false); if (item.Id.StartsWith("part.plugin.")) shell.RebuildMods(); Changed(); }));
+        if (item.Id.StartsWith("part.")) menu.Items.Add(Theme.Item("Remove piece", () => { if (item.Id.StartsWith("part.plugin.")) { BarLayout.Enable(shell.Config, item, false); shell.RebuildMods(); } shell.Config.TopDockItems.Remove(item); Changed(); }));
+        if (BarLayout.Component(item) == "plugin" && shell.Mods.Catalog.FirstOrDefault(m => m.Id == item.Target) is { } plugin) { var access = shell.Plugins.Menu(plugin, MonitorHandle); menu.Items.Add(new Separator()); foreach (var action in access.Items.Cast<object>().ToArray()) { access.Items.Remove(action); menu.Items.Add(action); } }
         if (item.Id == "title" && shell.Tweaks.Has("title-actions") && Target() != IntPtr.Zero)
         {
             var h = lastExternal; menu.Items.Add(new Separator()); menu.Items.Add(Theme.Item("Minimize window", () => Native.ShowWindow(h, 6))); menu.Items.Add(Theme.Item(Native.IsZoomed(h) ? "Restore window" : "Maximize window", () => { Native.ShowWindow(h, Native.IsZoomed(h) ? 9 : 3); Native.Activate(h); }));
@@ -129,11 +133,12 @@ internal sealed class TopBar : Window
     internal void RefreshLayout()
     {
         if (dragging || IsMouseCaptureWithin || IsMouseOver && Mouse.LeftButton == MouseButtonState.Pressed || ContextMenu?.IsOpen == true || elements.Values.Any(e => e.ContextMenu?.IsOpen == true)) return;
-        var c = shell.Config; string next = string.Join("|", c.TopDockItems.Select(i => i.Id + i.Group + i.Enabled + i.Space + i.Kind + i.Name + i.Text + i.Format + i.TimeZone + i.Target + i.Width + i.FontSize + BarLayout.Legacy(c, BarLayout.Component(i)))) + $"/{c.TopDockFontSize}/{c.TopDockIconSize}/{c.TopDockPadding}/{c.TopDockGap}/{c.TopDockBrandText}/{c.TopDockTitleWidth}";
+        var c = shell.Config; string next = string.Join("|", c.TopDockItems.Select(i => i.Id + i.Group + i.Enabled + i.Space + i.Kind + i.Name + i.Text + i.Format + i.TimeZone + i.Target + i.Width + i.FontSize + i.DividerThickness + i.DividerLength + BarLayout.Legacy(c, BarLayout.Component(i)))) + $"/{c.TopDockFontSize}/{c.TopDockIconSize}/{c.TopDockPadding}/{c.TopDockGap}/{c.TopDockBrandText}/{c.TopDockTitleWidth}";
+        next += "/" + string.Join(",", shell.Mods.Enabled.Where(m => m.Kind == "widget").Select(m => m.Id));
         if (next != spec) {
             foreach (var old in elements.Values.OfType<ContentControl>()) old.Content = null;
             layout.Children.Clear(); elements.Clear(); labels.Clear();
-            foreach (var item in c.TopDockItems.Where(i => i.Enabled && BarLayout.Legacy(c, BarLayout.Component(i)))) { var element = Make(item); elements[item.Id] = element; layout.Children.Add(element); } spec = next;
+            foreach (var item in c.TopDockItems.Where(i => i.Enabled && (!i.Id.StartsWith("divider.") || ShellFeatures.On(c, "dock-dividers")) && BarLayout.Legacy(c, BarLayout.Component(i)) && (BarLayout.Component(i) != "plugin" || shell.Mods.Enabled.Any(m => m.Id == i.Target)))) { var element = Make(item); elements[item.Id] = element; layout.Children.Add(element); } spec = next;
         }
         layout.InvalidateArrange();
         UpdateLabels();
@@ -151,7 +156,11 @@ internal sealed class TopBar : Window
     void UpdateLabels()
     {
         var mod = shell.Tweaks.Module("clock-seconds");
-        foreach (var item in shell.Config.TopDockItems) if (labels.TryGetValue(item.Id, out var text)) text.Text = DockPieceText.Render(item, shell.Config, preview ? "Projects — Harbor Files" : activeTitle, preview ? 24 : shell.CpuUsage, preview ? 42 : shell.MemoryUsage, mod != null, mod == null ? null : shell.Mods.Value(mod, "format", "ddd, MMM d   h:mm:ss tt"));
+        foreach (var item in shell.Config.TopDockItems) {
+            var plugin = BarLayout.Component(item) == "plugin" ? shell.Mods.Catalog.FirstOrDefault(m => m.Id == item.Target) : null;
+            if (plugin != null && elements.TryGetValue(item.Id, out var piece)) piece.Visibility = preview || PluginVisibility.Allowed(shell, plugin) ? Visibility.Visible : Visibility.Collapsed;
+            if (labels.TryGetValue(item.Id, out var text)) text.Text = plugin != null ? PluginPresentation.Reading(shell, plugin, preview) : DockPieceText.Render(item, shell.Config, preview ? "Projects — Harbor Files" : activeTitle, preview ? 24 : shell.CpuUsage, preview ? 42 : shell.MemoryUsage, mod != null, mod == null ? null : shell.Mods.Value(mod, "format", "ddd, MMM d   h:mm:ss tt"));
+        }
     }
     internal void PreparePreview() { preview = true; RefreshLayout(); }
     internal void SetFullscreen(bool hide)
